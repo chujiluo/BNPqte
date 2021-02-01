@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1611953465431.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3855418114",
+    "id" : "5A7DB010",
+    "lastKnownWriteTime" : 1612079949,
+    "last_content_update" : 1612079949229,
+    "path" : "~/Desktop/NonParamQTE/src/rcpparma_hello_world.cpp",
+    "project_path" : "src/rcpparma_hello_world.cpp",
+    "properties" : {
+        "cursorPosition" : "55,0",
+        "scrollLine" : "16"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "cpp"
+}

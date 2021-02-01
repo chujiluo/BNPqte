@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1612124944907.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2F07502C",
+    "lastKnownWriteTime" : 1612154332,
+    "last_content_update" : 1612154332139,
+    "path" : "~/Desktop/NonParamQTE/R/DPMdensity.R",
+    "project_path" : "R/DPMdensity.R",
+    "properties" : {
+        "cursorPosition" : "22,40",
+        "docOutlineVisible" : "0",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
