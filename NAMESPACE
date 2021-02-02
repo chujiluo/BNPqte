@@ -1,4 +1,6 @@
 useDynLib(NonParamQTE, .registration=TRUE)
 importFrom(Rcpp, evalCpp)
 importFrom(mvtnorm, rmvnorm)
-exportPattern("^[[:alpha:]]+")
+importFrom(plotly, plot_ly, add_surface, layout, subplot)
+##exportPattern("^[[:alpha:]]+")
+export(DPMdensity, plot.DPMdensity)

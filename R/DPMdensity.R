@@ -226,7 +226,7 @@ DPMdensity = function(y,
   if(prediction) {
     res$grid1 = grid1
     res$grid2 = grid2
-    res$predict.densities.mean = colMeans(res$predict.densities)
+    res$predict.densities.mean = apply(simplify2array(res$predict.densities), c(1, 2), mean)
   }
   
   return(res)

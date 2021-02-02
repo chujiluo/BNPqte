@@ -44,18 +44,18 @@ Rcpp::List cDPMdensity (
   b_gd = b_gd * alpha;
   arma::rowvec lw(nclusters);  // log(weight)
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
-  arma::mat yeval(ngrid*ngrid, d);
+  arma::mat yeval(ngrid*ngrid, d);  // arma::mat in column major order
   if(prediction) {
     arma::uword tmp_idx = 0;
     for(arma::uword i=0; i<ngrid; i++){
       for(arma::uword j=0; j<ngrid; j++){
-        yeval(tmp_idx, 0) = grid1(i);
-        yeval(tmp_idx, 1) = grid2(j);
+        yeval(tmp_idx, 0) = grid1(j);
+        yeval(tmp_idx, 1) = grid2(i);
         tmp_idx = tmp_idx + 1;
       }
     }
   }
-  arma::colvec evalDensity(ngrid*ngrid);
+  arma::mat evalDensity(ngrid, ngrid);  // match the grid: grid1 x grid2
   
   // process optional arguments
   bool previous = false;
@@ -102,11 +102,12 @@ Rcpp::List cDPMdensity (
   Rcpp::List ZetaList(ndpost);  // each is a nclustersxd mat
   Rcpp::NumericMatrix lwList(ndpost, nclusters);
   Rcpp::IntegerMatrix kappaList(ndpost, n);
-  Rcpp::NumericVector alphaList(ndpost*keepevery+nskip);
+  Rcpp::NumericVector alphaList(ndpost);
+  //Rcpp::NumericVector alphaList(ndpost*keepevery+nskip);
   Rcpp::NumericMatrix mList(ndpost, d);
   Rcpp::NumericVector lambdaList(ndpost);
   Rcpp::List PsiList(ndpost);  //each is d x d
-  Rcpp::NumericMatrix predlDensities(ndpost, ngrid*ngrid);
+  Rcpp::List predlDensities(ndpost);  // each is a ngridxngrid mat
   
   
   // start mcmc
@@ -116,9 +117,11 @@ Rcpp::List cDPMdensity (
       drawparam(y, n, d, nclusters, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, alpha, m, lambda, nu, Psi, 
                 Omega, Zeta, lw, a_gd, b_gd, kappa, yeval, evalDensity, ngrid, false);
       
+      /*
       if(updateAlpha){
         alphaList[i] = alpha;
       }
+       */
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
@@ -130,10 +133,11 @@ Rcpp::List cDPMdensity (
           drawparam(y, n, d, nclusters, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, alpha, m, lambda, nu, Psi, 
                     Omega, Zeta, lw, a_gd, b_gd, kappa, yeval, evalDensity, ngrid, false);
         }
-        
+        /*
         if(updateAlpha){
           alphaList[nskip+(i-nskip)*keepevery+j] = alpha;
         }
+         */
       }
       
       // keep the posterior sample
@@ -151,6 +155,10 @@ Rcpp::List cDPMdensity (
         kappaList(i-nskip, j) = kappa(j);
       }
       
+      if(updateAlpha){
+        alphaList[i-nskip] = alpha;
+      }
+      
       if(useHyperpriors){
         for(arma::uword j=0; j<d; j++){
           mList(i-nskip, j) = m(j);
@@ -163,9 +171,7 @@ Rcpp::List cDPMdensity (
       
       // predict grid points
       if(prediction){
-        for(arma::uword j=0; j<(ngrid*ngrid); j++){
-          predlDensities(i-nskip, j) = evalDensity(j);
-        }
+        predlDensities[i-nskip] = Rcpp::wrap(evalDensity);
       }
       
     }
@@ -214,7 +220,6 @@ Rcpp::List cDPMdensity (
     res["Psi"] = PsiList;
   }
   if(prediction){
-    res["y.pred"] = yeval;
     res["predict.densities"] = predlDensities;
   }
 

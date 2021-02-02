@@ -13,7 +13,7 @@ void setparam(arma::uword n, arma::uword nclusters, arma::colvec & m, double lam
 }
 
 // update (hyper)parameters and evaluate grid points
-void drawparam(const arma::mat & y, arma::uword n, arma::uword d, arma::uword nclusters, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, double & alpha, arma::colvec &m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa, arma::mat & yeval, arma::colvec & evalDensity, arma::uword ngrid, bool prediction){
+void drawparam(const arma::mat & y, arma::uword n, arma::uword d, arma::uword nclusters, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, double & alpha, arma::colvec &m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa, arma::mat & yeval, arma::mat & evalDensity, arma::uword ngrid, bool prediction){
   
   // calculate sufficient statistics
   std::vector<std::vector<unsigned>> clusterMembers(nclusters);
@@ -104,7 +104,7 @@ void drawparam(const arma::mat & y, arma::uword n, arma::uword d, arma::uword nc
   if(prediction) {
     for(arma::uword i=0; i<(ngrid*ngrid); i++){
       arma::rowvec v = lw + evalloglik.row(i);
-      evalDensity(i) = log_sum_exp(v, false);
+      evalDensity(i) = log_sum_exp(v, false);  // treating arma::mat as flat and in column major order
     }
   }
 
