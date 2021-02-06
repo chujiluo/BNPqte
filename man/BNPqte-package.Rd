@@ -1,26 +1,26 @@
-\name{NonParamQTE-package}
-\alias{NonParamQTE-package}
-\alias{NonParamQTE}
+\name{BNPqte-package}
+\alias{BNPqte-package}
+\alias{BNPqte}
 \docType{package}
 \title{
-\packageTitle{NonParamQTE}
+\packageTitle{BNPqte}
 }
 \description{
-\packageDescription{NonParamQTE}
+\packageDescription{BNPqte}
 }
 \details{
 
 The DESCRIPTION file:
-\packageDESCRIPTION{NonParamQTE}
-\packageIndices{NonParamQTE}
+\packageDESCRIPTION{BNPqte}
+\packageIndices{BNPqte}
 ~~ An overview of how to use the ~~
 ~~ package, including the most ~~
 ~~ important functions ~~
 }
 \author{
-\packageAuthor{NonParamQTE}
+\packageAuthor{BNPqte}
 
-Maintainer: \packageMaintainer{NonParamQTE}
+Maintainer: \packageMaintainer{BNPqte}
 }
 \references{
 ~~ Literature or other references for background information ~~

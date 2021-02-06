@@ -1,16 +1,17 @@
-DPMdensity = function(y, 
-                      ngrid=1000L, grid=NULL,
-                      updateAlpha=TRUE, 
-                      useHyperpriors=TRUE,
-                      nclusters=50L, 
-                      nskip=1000L, ndpost=1000L, keepevery=1L, 
-                      state=NULL, status=TRUE, 
-                      alpha=10.0, a0=10.0, b0=1.0, 
-                      m=colMeans(y), m0=colMeans(y), S0=NULL, 
-                      lambda=0.5, gamma1=3.0, gamma2=2.0, 
-                      nu=ncol(y)+2, Psi=NULL , nu0=ncol(y)+2, Psi0=NULL,
-                      seed = 123
-                      ) {
+DPMcdensity = function(y, x, 
+                       xpred=NULL, ngrid=1000L, grid=NULL, 
+                       type="pdf", compute.band=TRUE,
+                       updateAlpha=TRUE, 
+                       useHyperpriors=TRUE,
+                       nclusters=50L, 
+                       nskip=1000L, ndpost=1000L, keepevery=1L, 
+                       state=NULL, status=TRUE, 
+                       alpha=10.0, a0=10.0, b0=1.0, 
+                       m=colMeans(cbind(y, x)), m0=colMeans(cbind(y, x)), S0=NULL, 
+                       lambda=0.5, gamma1=3.0, gamma2=2.0, 
+                       nu=ncol(as.matrix(x))+3, Psi=NULL , nu0=ncol(as.matrix(x))+3, Psi0=NULL,
+                       seed = 123
+) {
   
   #---------------------------------------------- 
   # check and process arguments
@@ -19,40 +20,75 @@ DPMdensity = function(y,
   ##-----------------------------
   ## y
   ##-----------------------------
-  if (is.matrix(y) & (ncol(y) > 1)) {
-    n = dim(y)[1]
-    d = dim(y)[2]
+  if(is.vector(y)) {
+    n = length(y)
   } else {
-    stop("y is required to be a matrix with more than 1 column.")
+    stop("y is required to be a vector.")
   }
   
   ##-----------------------------
-  ## ngrid, grid: only evaluate grid points when d=2
+  ## x
   ##-----------------------------
-  if ((d == 2) & ((ngrid > 0) | !is.null(grid))) {
-    prediction = TRUE
-    if (is.null(grid)) {
-      left = right = rep(0, 2)
-      for (j in 1:2) {
-        left[j] = min(y[, j]) - 0.5 * sd(y[, j])
-        right[j] = max(y[, j]) + 0.5 * sd(y[, j])
-      }
-      ngrid = as.integer(sqrt(ngrid))
-      grid1 = seq(left[1], right[1], length.out = ngrid)
-      grid2 = seq(left[2], right[2], length.out = ngrid)
+  if(is.vector(x)) {
+    if(length(x) != n)
+      stop("The length of x is required to be the same as length(y), when x is a vector.")
+    else
+      d = 2
+  } else {
+    if(is.matrix(x)) {
+      if(nrow(x) != n)
+        stop("nrow(x) is required to be the same as length(y), when x is a matrix")
+      else
+        d = ncol(x) + 1
     } else {
-      if (is.matrix(grid)) {
-        ngrid = nrow(grid)
-        grid1 = grid[, 1]
-        grid2 = grid[, 2]
+      stop("x is required to be a vector or matrix.")
+    }
+  }
+  data = cbind(y, x)  # n x d matrix (d >= 2)
+  x = as.matrix(x)
+  
+  ##-----------------------------
+  ## ngrid, grid, type, xpred
+  ##-----------------------------
+  if(is.null(xpred)) {
+    pdf = cdf = FALSE
+    ngrid = npred = 0
+    grid = xpred = NULL
+  } else {
+    if((ngrid <= 0) & is.null(grid)) {
+      pdf = cdf = FALSE
+      ngrid = npred = 0
+      grid = xpred = NULL
+    } else {
+      xpred = as.matrix(xpred)
+      npred = nrow(xpred)
+      if(ncol(xpred) != (d-1))
+        stop("xpred is required to have the same number of columns as x.")
+      
+      if(!(type %in% c("pdf", "cdf", "both"))) {
+        stop("type is required to be one of pdf, cdf and both.")
       } else {
-        stop("grid is required to be a matrix or NULL.")
+        if(type == "pdf") {
+          pdf = TRUE
+          cdf = FALSE
+        }
+        if(type == "cdf") {
+          pdf = FALSE
+          cdf = TRUE
+        }
+        if(type == "both")
+          pdf = cdf = TRUE
+      }
+      
+      if(is.null(grid)) {
+        ### ngrid > 0
+        grid <- seq(from = (min(y) - 0.25 * sd(y)), to = (max(y) + 0.25 * sd(y)), length.out = ngrid)
+      } else {
+        ### grid is provided
+        grid = as.vector(grid)
+        ngrid = length(grid)
       }
     }
-  } else {
-    prediction = FALSE
-    ngrid = 0
-    grid1 = grid2 = NULL
   }
   
   
@@ -95,7 +131,7 @@ DPMdensity = function(y,
       else
         stop("a0 and b0 are required to be positive scalars.")
     } else {
-      if (alpha > 0) 
+      if (alpha > 0)
         a0 = b0 = -1
       else
         stop("alpha is required to be a positive scalar.")
@@ -105,14 +141,14 @@ DPMdensity = function(y,
     ## Hyperpriors for the base distribution (Normal-Inverse-Wishart: N(zeta|m, Omega/lambda)xIW(Omega|nu, Psi))
     ##-----------------------------
     if (nu < d) 
-      stop("nu is required to be a scalar greater than ncol(y)-1.")
+      stop("nu is required to be a scalar greater than ncol(cbind(y, x))-1.")
     
     if (useHyperpriors) {
       ### m ~ Normal(m0, S0)
       if (!(is.vector(m0) & (length(m0) == d)))
-        stop("m0 is required to be a vector of length equal to ncol(y).")
+        stop("m0 is required to be a vector of length equal to ncol(cbind(y, x)).")
       if (is.null(S0)) 
-        S0 = diag(apply(y, 2, function(s) (range(s)[2]-range(s)[1])^2/16))
+        S0 = diag(apply(data, 2, function(s) (range(s)[2]-range(s)[1])^2/16))
       m = NULL
       
       ### lambda ~ Gamma(gamma1, gamma2)
@@ -123,7 +159,7 @@ DPMdensity = function(y,
       
       ### Psi ~ Wishart(nu0, Psi0)
       if (nu0 < d)
-        stop("nu0 is required to be a scalar greater than ncol(y)-1.")
+        stop("nu0 is required to be a scalar greater than ncol(cbind(y, x))-1.")
       if (is.null(Psi0))
         Psi0 = S0 / nu0
       Psi = NULL
@@ -134,7 +170,7 @@ DPMdensity = function(y,
         m0 = rep(-1, d)
         S0 = diag(-1, d)
       } else {
-        stop("m is required to be a vector of length equal to ncol(y).")
+        stop("m is required to be a vector of length equal to ncol(cbind(y, x)).")
       }
       
       if (lambda > 0) 
@@ -145,26 +181,26 @@ DPMdensity = function(y,
       if (is.null(Psi)) {
         nu0 = -1
         Psi0 = diag(-1, d)
-        Psi = diag(apply(y, 2, function(s) (range(s)[2]-range(s)[1])^2/16))
+        Psi = diag(apply(data, 2, function(s) (range(s)[2]-range(s)[1])^2/16))
       } else if (!is.positive.definite(Psi)) {
         stop("Psi is required to be a positive definite matrix.")
       }
       
     }
     
-    Omega = Zeta = kappa = lw = a_gd = b_gd = NULL   # will initialize in cpp function
+    Omega = Zeta = kappa = lw = a_gd = b_gd = NULL
   }
   
   
   #---------------------------------------------- 
   ## print information
   #---------------------------------------------- 
-  cat("Fitting a DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
-  cat("- Number of observations: ", n, "; Dimension: ", d, ".\n", sep = "")
-  if(prediction)
-    cat("- Prediction = ", prediction, "; ngrid = ", ngrid, ".\n", sep = "")
+  cat("Fitting a Weighted Dependent DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
+  cat("- Number of observations: ", n, "; Number of covariates: ", d-1, ".\n", sep = "")
+  if(pdf | cdf)
+    cat("- Prediction = TRUE; Prediction type = ", type, "; ngrid(y) = ", ngrid, "; ngrid(x) = ", npred, ".\n", sep = "")
   else
-    cat("- Prediction = ", prediction, ".\n", sep = "")
+    cat("- Prediction = FALSE.\n", sep = "")
   if(status)
     cat("- Start a new analysis.", "\n", sep = "")
   else
@@ -183,13 +219,17 @@ DPMdensity = function(y,
   #---------------------------------------------- 
   ptm <- proc.time()
   
-  res = .Call("_BNPqte_cDPMdensity",
+  res = .Call("_BNPqte_cDPMcdensity",
               n,
               d,
+              data,
               y,
+              x,
               status,
-              prediction,
+              pdf,
+              cdf,
               ngrid,
+              npred,
               updateAlpha,
               useHyperpriors,
               a0,
@@ -215,8 +255,8 @@ DPMdensity = function(y,
               b_gd,
               lw,
               kappa,
-              grid1,
-              grid2
+              grid,
+              xpred
   )
   
   cat("Finished!", "\n")
@@ -226,16 +266,24 @@ DPMdensity = function(y,
   # returns
   #---------------------------------------------- 
   res$proc.time = proc.time() - ptm
-  res$prediction = prediction
-  if(prediction) {
-    res$grid1 = grid1
-    res$grid2 = grid2
-    res$predict.pdf.mean = apply(simplify2array(res$predict.pdf), c(1, 2), mean)
+  res$pdf = pdf
+  res$cdf = cdf
+  if(pdf | cdf) {
+    res$xpred = xpred;
+    res$grid = grid;
+    if(pdf) {
+      res$predict.pdf.mean = apply(simplify2array(res$predict.pdf), c(1, 2), mean)
+      if(compute.band) {
+        #
+      }
+    }
+    if(cdf) {
+      res$predict.cdf.mean = apply(simplify2array(res$predict.cdf), c(1, 2), mean)
+      if(compute.band) {
+        #
+      }
+    }
   }
   
   return(res)
 }
-
-
-
-

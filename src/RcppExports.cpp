@@ -6,102 +6,104 @@
 
 using namespace Rcpp;
 
-// cDPMdensity
-Rcpp::List cDPMdensity(const arma::uword n, const arma::uword d, const arma::mat& y, const bool prediction, const arma::uword ngrid, const arma::colvec& grid1, const arma::colvec& grid2, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, double alpha, const arma::colvec& m0, const arma::mat& S0, arma::colvec& m, const double gamma1, const double gamma2, double lambda, const int nu0, const arma::mat& Psi0, const int nu, arma::mat& Psi, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_);
-RcppExport SEXP _NonParamQTE_cDPMdensity(SEXP nSEXP, SEXP dSEXP, SEXP ySEXP, SEXP predictionSEXP, SEXP ngridSEXP, SEXP grid1SEXP, SEXP grid2SEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP alphaSEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP mSEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP lambdaSEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP PsiSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP) {
+// cDPMcdensity
+Rcpp::List cDPMcdensity(const arma::uword n, const arma::uword d, const arma::mat& data, const arma::colvec& y, const arma::mat& x, const bool status, const bool pdf, const bool cdf, const arma::uword ngrid, const arma::uword npred, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, const arma::colvec& m0, const arma::mat& S0, const double gamma1, const double gamma2, const int nu0, const arma::mat& Psi0, const int nu, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, double alpha, double lambda, Rcpp::Nullable<Rcpp::NumericVector> m_, Rcpp::Nullable<Rcpp::NumericMatrix> Psi_, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_, Rcpp::Nullable<Rcpp::NumericVector> grid_, Rcpp::Nullable<Rcpp::NumericMatrix> xpred_);
+RcppExport SEXP _BNPqte_cDPMcdensity(SEXP nSEXP, SEXP dSEXP, SEXP dataSEXP, SEXP ySEXP, SEXP xSEXP, SEXP statusSEXP, SEXP pdfSEXP, SEXP cdfSEXP, SEXP ngridSEXP, SEXP npredSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP m_SEXP, SEXP Psi_SEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP, SEXP grid_SEXP, SEXP xpred_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::uword >::type n(nSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type d(dSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const bool >::type prediction(predictionSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const bool >::type status(statusSEXP);
+    Rcpp::traits::input_parameter< const bool >::type pdf(pdfSEXP);
+    Rcpp::traits::input_parameter< const bool >::type cdf(cdfSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type ngrid(ngridSEXP);
-    Rcpp::traits::input_parameter< const arma::colvec& >::type grid1(grid1SEXP);
-    Rcpp::traits::input_parameter< const arma::colvec& >::type grid2(grid2SEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type npred(npredSEXP);
     Rcpp::traits::input_parameter< const bool >::type updateAlpha(updateAlphaSEXP);
     Rcpp::traits::input_parameter< const bool >::type useHyperpriors(useHyperpriorsSEXP);
     Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
     Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
-    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type m0(m0SEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type S0(S0SEXP);
-    Rcpp::traits::input_parameter< arma::colvec& >::type m(mSEXP);
     Rcpp::traits::input_parameter< const double >::type gamma1(gamma1SEXP);
     Rcpp::traits::input_parameter< const double >::type gamma2(gamma2SEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< const int >::type nu0(nu0SEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Psi0(Psi0SEXP);
     Rcpp::traits::input_parameter< const int >::type nu(nuSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type Psi(PsiSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type nclusters(nclustersSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type nskip(nskipSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type ndpost(ndpostSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type keepevery(keepeverySEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type m_(m_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type Psi_(Psi_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type Zeta_(Zeta_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type Omega_(Omega_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type a_gd_(a_gd_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type b_gd_(b_gd_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type lw_(lw_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type kappa_(kappa_SEXP);
-    rcpp_result_gen = Rcpp::wrap(cDPMdensity(n, d, y, prediction, ngrid, grid1, grid2, updateAlpha, useHyperpriors, a0, b0, alpha, m0, S0, m, gamma1, gamma2, lambda, nu0, Psi0, nu, Psi, nclusters, nskip, ndpost, keepevery, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type grid_(grid_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type xpred_(xpred_SEXP);
+    rcpp_result_gen = Rcpp::wrap(cDPMcdensity(n, d, data, y, x, status, pdf, cdf, ngrid, npred, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid_, xpred_));
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpparma_hello_world
-arma::mat rcpparma_hello_world();
-RcppExport SEXP _NonParamQTE_rcpparma_hello_world() {
+// cDPMdensity
+Rcpp::List cDPMdensity(const arma::uword n, const arma::uword d, const arma::mat& y, const bool status, const bool prediction, const arma::uword ngrid, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, const arma::colvec& m0, const arma::mat& S0, const double gamma1, const double gamma2, const int nu0, const arma::mat& Psi0, const int nu, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, double alpha, double lambda, Rcpp::Nullable<Rcpp::NumericVector> m_, Rcpp::Nullable<Rcpp::NumericMatrix> Psi_, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_, Rcpp::Nullable<Rcpp::NumericVector> grid1_, Rcpp::Nullable<Rcpp::NumericVector> grid2_);
+RcppExport SEXP _BNPqte_cDPMdensity(SEXP nSEXP, SEXP dSEXP, SEXP ySEXP, SEXP statusSEXP, SEXP predictionSEXP, SEXP ngridSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP m_SEXP, SEXP Psi_SEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP, SEXP grid1_SEXP, SEXP grid2_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcpparma_hello_world());
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_outerproduct
-arma::mat rcpparma_outerproduct(const arma::colvec& x);
-RcppExport SEXP _NonParamQTE_rcpparma_outerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_outerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_innerproduct
-double rcpparma_innerproduct(const arma::colvec& x);
-RcppExport SEXP _NonParamQTE_rcpparma_innerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_innerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_bothproducts
-Rcpp::List rcpparma_bothproducts(const arma::colvec& x);
-RcppExport SEXP _NonParamQTE_rcpparma_bothproducts(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_bothproducts(x));
+    Rcpp::traits::input_parameter< const arma::uword >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const bool >::type status(statusSEXP);
+    Rcpp::traits::input_parameter< const bool >::type prediction(predictionSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type ngrid(ngridSEXP);
+    Rcpp::traits::input_parameter< const bool >::type updateAlpha(updateAlphaSEXP);
+    Rcpp::traits::input_parameter< const bool >::type useHyperpriors(useHyperpriorsSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type m0(m0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type S0(S0SEXP);
+    Rcpp::traits::input_parameter< const double >::type gamma1(gamma1SEXP);
+    Rcpp::traits::input_parameter< const double >::type gamma2(gamma2SEXP);
+    Rcpp::traits::input_parameter< const int >::type nu0(nu0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Psi0(Psi0SEXP);
+    Rcpp::traits::input_parameter< const int >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type nclusters(nclustersSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type nskip(nskipSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type ndpost(ndpostSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type keepevery(keepeverySEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type m_(m_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type Psi_(Psi_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type Zeta_(Zeta_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type Omega_(Omega_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type a_gd_(a_gd_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type b_gd_(b_gd_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type lw_(lw_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type kappa_(kappa_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type grid1_(grid1_SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type grid2_(grid2_SEXP);
+    rcpp_result_gen = Rcpp::wrap(cDPMdensity(n, d, y, status, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid1_, grid2_));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_NonParamQTE_cDPMdensity", (DL_FUNC) &_NonParamQTE_cDPMdensity, 32},
-    {"_NonParamQTE_rcpparma_hello_world", (DL_FUNC) &_NonParamQTE_rcpparma_hello_world, 0},
-    {"_NonParamQTE_rcpparma_outerproduct", (DL_FUNC) &_NonParamQTE_rcpparma_outerproduct, 1},
-    {"_NonParamQTE_rcpparma_innerproduct", (DL_FUNC) &_NonParamQTE_rcpparma_innerproduct, 1},
-    {"_NonParamQTE_rcpparma_bothproducts", (DL_FUNC) &_NonParamQTE_rcpparma_bothproducts, 1},
+    {"_BNPqte_cDPMcdensity", (DL_FUNC) &_BNPqte_cDPMcdensity, 37},
+    {"_BNPqte_cDPMdensity", (DL_FUNC) &_BNPqte_cDPMdensity, 33},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_NonParamQTE(DllInfo *dll) {
+RcppExport void R_init_BNPqte(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

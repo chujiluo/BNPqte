@@ -25,7 +25,7 @@ plot.DPMdensity = function(object, diff=FALSE, true_density=NULL, true_density_f
       # plot the difference density (true-predicted) surface
       fig = plot_ly(x = object$grid1, 
                     y = object$grid2, 
-                    z = (true_density - object$predict.densities.mean)) %>% 
+                    z = (true_density - object$predict.pdf.mean)) %>% 
         add_surface() %>% 
         layout(title = "(True Density - Predicted Density) Surface", scene = list(xaxis = list(title = "Y1"),
                                                                                   yaxis = list(title = "Y2"),
@@ -36,7 +36,7 @@ plot.DPMdensity = function(object, diff=FALSE, true_density=NULL, true_density_f
     # plot predicted density surface only
     fig = plot_ly(x = object$grid1, 
                   y = object$grid2, 
-                  z = object$predict.densities.mean) %>% 
+                  z = object$predict.pdf.mean) %>% 
       add_surface() %>% 
       layout(title = "Predicted Density Surface", scene = list(xaxis = list(title = "Y1"),
                                                                yaxis = list(title = "Y2"),

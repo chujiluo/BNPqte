@@ -1,19 +1,23 @@
 #include "dpm.h"
-
+  
 // [[Rcpp::export]]
-Rcpp::List cDPMdensity (
+Rcpp::List cDPMcdensity (
     const arma::uword n,
     const arma::uword d,
-    const arma::mat & y,   //nxd matrix
+    const arma::mat & data,   // nxd matrix
+    const arma::colvec & y,   // vector of length n
+    const arma::mat & x,  // nx(d-1) matrix
     const bool status,
-    const bool prediction,
+    const bool pdf,
+    const bool cdf,
     const arma::uword ngrid,
+    const arma::uword npred,
     const bool updateAlpha,
     const bool useHyperpriors,
     const double a0,
     const double b0,
-    const arma::colvec & m0,  //vector of length d
-    const arma::mat & S0, //dxd matrix
+    const arma::colvec & m0,  // vector of length d
+    const arma::mat & S0,  //dxd matrix
     const double gamma1,
     const double gamma2,
     const int nu0,
@@ -27,14 +31,14 @@ Rcpp::List cDPMdensity (
     double lambda,
     Rcpp::Nullable<Rcpp::NumericVector> m_ = R_NilValue,  // vector of length d
     Rcpp::Nullable<Rcpp::NumericMatrix> Psi_ = R_NilValue,  // dxd matrix
-    Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::List> Omega_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> a_gd_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> b_gd_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> lw_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::IntegerVector> kappa_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> grid1_ = R_NilValue,  //vector of length ngrid
-    Rcpp::Nullable<Rcpp::NumericVector> grid2_ = R_NilValue  //vector of length ngrid
+    Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_ = R_NilValue,  // dxnclusters matrix
+    Rcpp::Nullable<Rcpp::List> Omega_ = R_NilValue,  // nclusters elements with each is a dxd matrix
+    Rcpp::Nullable<Rcpp::NumericVector> a_gd_ = R_NilValue,  // vector of length nclusters-1
+    Rcpp::Nullable<Rcpp::NumericVector> b_gd_ = R_NilValue,  // vector of length nclusters-1
+    Rcpp::Nullable<Rcpp::NumericVector> lw_ = R_NilValue,  // vector of length nclusters
+    Rcpp::Nullable<Rcpp::IntegerVector> kappa_ = R_NilValue,  // vector of length n
+    Rcpp::Nullable<Rcpp::NumericVector> grid_ = R_NilValue,  //vector of length ngrid
+    Rcpp::Nullable<Rcpp::NumericMatrix> xpred_ = R_NilValue  // npred x (d-1) matrix
 ) {
   
   //------------------------------------------------------------------
@@ -50,27 +54,20 @@ Rcpp::List cDPMdensity (
   arma::rowvec b_gd(nclusters-1, arma::fill::ones);
   arma::rowvec lw(nclusters);  // log(weight)
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
-  arma::colvec grid1(ngrid);
-  arma::colvec grid2(ngrid);
-  arma::mat ypred(ngrid*ngrid, d);  // arma::mat in column major order
-  if(grid1_.isNotNull()) {
-    Rcpp::NumericVector tmp1(grid1_);
-    Rcpp::NumericVector tmp2(grid2_);
-    grid1 = Rcpp::as<arma::colvec>(tmp1);
-    grid2 = Rcpp::as<arma::colvec>(tmp2);
-    arma::uword tmp_idx = 0;
-    for(arma::uword i=0; i<ngrid; i++){
-      for(arma::uword j=0; j<ngrid; j++){
-        ypred(tmp_idx, 0) = grid1(j);
-        ypred(tmp_idx, 1) = grid2(i);
-        tmp_idx = tmp_idx + 1;
-      }
-    }
+  arma::colvec grid(ngrid);
+  if(grid_.isNotNull()) {
+    Rcpp::NumericVector tmp(grid_);
+    grid = Rcpp::as<arma::colvec>(tmp);
   }
-  arma::mat evalPDF(ngrid, ngrid);  // match the grid: grid1 x grid2
+  arma::mat xpred(npred, (d-1));
+  if(xpred_.isNotNull()) {
+    Rcpp::NumericMatrix tmp(xpred_);
+    xpred = Rcpp::as<arma::mat>(tmp);
+  }
+  arma::mat evalcPDF(npred, ngrid);  // for each x_i, estimate ngrid conditional density
+  arma::mat evalcCDF(npred, ngrid);  // for each x_i, estimate ngrid conditional Cdf
   
   
-  Rcpp::Rcout << "Initializing..." << std::endl;
   //------------------------------------------------------------------
   // initialize hyperparameters
   if(alpha < 0) {
@@ -94,6 +91,7 @@ Rcpp::List cDPMdensity (
   }
   
   
+  Rcpp::Rcout << "Initializing..." << std::endl;
   //------------------------------------------------------------------
   // initialize parameters
   if(!status) {
@@ -127,8 +125,9 @@ Rcpp::List cDPMdensity (
   Rcpp::NumericVector alphaList(ndpost);
   Rcpp::NumericMatrix mList(ndpost, d);
   Rcpp::NumericVector lambdaList(ndpost);
-  Rcpp::List PsiList(ndpost);  // each is dxd
-  Rcpp::List predPDF(ndpost);  // each is a ngridxngrid mat
+  Rcpp::List PsiList(ndpost);  // each is d x d
+  Rcpp::List predcPDF(ndpost);  // each is npred x ngrid
+  Rcpp::List predcCDF(ndpost);  // each is npred x ngrid
   
   
   Rcpp::Rcout << "MCMC updating..." << std::endl;
@@ -137,19 +136,23 @@ Rcpp::List cDPMdensity (
   for(arma::uword i=0; i<(nskip+ndpost); i++){
     if(i<nskip){
       // update (hyper)parameters
-      drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
+      drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
+      
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
-        drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
+        drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
       }
       
       // prediction
-      if(prediction) {
-        predict_joint(ngrid, d, nclusters, ypred, Zeta, icholOmega, othersOmega, lw, evalPDF);
-        predPDF[i-nskip] = Rcpp::wrap(evalPDF);
+      if(pdf || cdf) {
+        predict_conditional(ngrid, npred, d, nclusters, grid, xpred, Zeta, Omega, lw, pdf, cdf, evalcPDF, evalcCDF);
+        if(pdf)
+          predcPDF[i-nskip] = Rcpp::wrap(evalcPDF);
+        if(cdf)
+          predcCDF[i-nskip] = Rcpp::wrap(evalcCDF);
       }
       
       // keep the posterior sample
@@ -177,7 +180,7 @@ Rcpp::List cDPMdensity (
     }
   }
   
-
+  
   Rcpp::Rcout << "Collecting returns..." << std::endl;
   //------------------------------------------------------------------
   // keep current state
@@ -204,7 +207,7 @@ Rcpp::List cDPMdensity (
   state["a_gd"] = Rcpp::wrap(a_gd);
   state["b_gd"] = Rcpp::wrap(b_gd);
   state["kappa"] = Rcpp::wrap(kappa);
-    
+  
   
   //------------------------------------------------------------------
   // return
@@ -222,10 +225,11 @@ Rcpp::List cDPMdensity (
     res["lambda"] = lambdaList;
     res["Psi"] = PsiList;
   }
-  if(prediction){
-    res["predict.pdf"] = predPDF;
-  }
-
+  if(pdf)
+    res["predict.pdf"] = predcPDF;
+  if(cdf)
+    res["predict.cdf"] = predcCDF;
+  
   return res;
 }
 
