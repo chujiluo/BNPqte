@@ -69,10 +69,10 @@ static void rGeneralizedDirichletArma(arma::uword k, arma::rowvec & a, arma::row
 
 // Gumbel-max trick
 // Generate a sample from a discrete distribution with support: 0 ~ k-1, lw is unnormalized log weights
-static void rCat(arma::uword k, arma::rowvec & lw, arma::uword kappai){
+static void rCat(arma::uword k, arma::rowvec & lw, arma::uword i, arma::uvec & kappa){
   arma::rowvec u = arma::randu<arma::rowvec>(k);  // k samples from U[0,1]
   arma::rowvec g = -log(-log(u)) + lw;
-  kappai = g.index_max();
+  kappa(i) = g.index_max();
 }
 
 // Gumbel-max trick

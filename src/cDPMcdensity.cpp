@@ -27,6 +27,7 @@ Rcpp::List cDPMcdensity (
     const arma::uword nskip,
     const arma::uword ndpost,
     const arma::uword keepevery,
+    const arma::uword printevery,
     double alpha,
     double lambda,
     Rcpp::Nullable<Rcpp::NumericVector> m_ = R_NilValue,  // vector of length d
@@ -54,6 +55,7 @@ Rcpp::List cDPMcdensity (
   arma::rowvec b_gd(nclusters-1, arma::fill::ones);
   arma::rowvec lw(nclusters);  // log(weight)
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
+  
   arma::colvec grid(ngrid);
   if(grid_.isNotNull()) {
     Rcpp::NumericVector tmp(grid_);
@@ -64,8 +66,9 @@ Rcpp::List cDPMcdensity (
     Rcpp::NumericMatrix tmp(xpred_);
     xpred = Rcpp::as<arma::mat>(tmp);
   }
-  arma::mat evalcPDF(npred, ngrid);  // for each x_i, estimate ngrid conditional density
-  arma::mat evalcCDF(npred, ngrid);  // for each x_i, estimate ngrid conditional Cdf
+  arma::cube evalcPDFs(npred, ngrid, ndpost);
+  arma::cube evalcCDFs(npred, ngrid, ndpost);
+  arma::mat evalcMeans(npred, ndpost);
   
   
   //------------------------------------------------------------------
@@ -126,11 +129,25 @@ Rcpp::List cDPMcdensity (
   Rcpp::NumericMatrix mList(ndpost, d);
   Rcpp::NumericVector lambdaList(ndpost);
   Rcpp::List PsiList(ndpost);  // each is d x d
-  Rcpp::List predcPDF(ndpost);  // each is npred x ngrid
-  Rcpp::List predcCDF(ndpost);  // each is npred x ngrid
+  
+  Rcpp::List predcPDFs(ndpost);
+  Rcpp::NumericMatrix predcPDFl(npred, ngrid);
+  Rcpp::NumericMatrix predcPDFm(npred, ngrid);
+  Rcpp::NumericMatrix predcPDFh(npred, ngrid);
+  
+  Rcpp::List predcCDFs(ndpost);
+  Rcpp::NumericMatrix predcCDFl(npred, ngrid);
+  Rcpp::NumericMatrix predcCDFm(npred, ngrid);
+  Rcpp::NumericMatrix predcCDFh(npred, ngrid);
+  
+  Rcpp::NumericMatrix predcMeans(ndpost, npred);
+  Rcpp::NumericVector predcMeanl(npred);
+  Rcpp::NumericVector predcMeanm(npred);
+  Rcpp::NumericVector predcMeanh(npred);
   
   
   Rcpp::Rcout << "MCMC updating..." << std::endl;
+  arma::uword nmcmc = nskip + ndpost*keepevery;
   //------------------------------------------------------------------
   // start mcmc
   for(arma::uword i=0; i<(nskip+ndpost); i++){
@@ -138,21 +155,33 @@ Rcpp::List cDPMcdensity (
       // update (hyper)parameters
       drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
-      
+      if(((i+1)%printevery) == 0)
+        Rcpp::Rcout << " - MCMC scan " << i+1 << " of " << nmcmc << std::endl;
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
         drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
+        if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
+          Rcpp::Rcout << " - MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
       }
       
       // prediction
       if(pdf || cdf) {
-        predict_conditional(ngrid, npred, d, nclusters, grid, xpred, Zeta, Omega, lw, pdf, cdf, evalcPDF, evalcCDF);
-        if(pdf)
-          predcPDF[i-nskip] = Rcpp::wrap(evalcPDF);
-        if(cdf)
-          predcCDF[i-nskip] = Rcpp::wrap(evalcCDF);
+        arma::mat tmp_pdf(npred, ngrid);
+        arma::mat tmp_cdf(npred, ngrid);
+        arma::colvec tmp_mean(npred);
+        predict_conditional(ngrid, npred, d, nclusters, grid, xpred, Zeta, Omega, lw, pdf, cdf, tmp_pdf, tmp_cdf, tmp_mean);
+        
+        evalcMeans.col(i-nskip) = tmp_mean;
+        if(pdf) {
+          evalcPDFs.slice(i-nskip) = tmp_pdf;
+          predcPDFs[i-nskip] = Rcpp::wrap(tmp_pdf);
+        }
+        if(cdf) {
+          evalcCDFs.slice(i-nskip) = tmp_cdf;
+          predcCDFs[i-nskip] = Rcpp::wrap(tmp_cdf);
+        }
       }
       
       // keep the posterior sample
@@ -225,10 +254,41 @@ Rcpp::List cDPMcdensity (
     res["lambda"] = lambdaList;
     res["Psi"] = PsiList;
   }
-  if(pdf)
-    res["predict.pdf"] = predcPDF;
-  if(cdf)
-    res["predict.cdf"] = predcCDF;
+  
+  if(pdf || cdf) {
+    predcMeans = Rcpp::wrap(evalcMeans.t());  //ndpostxnpred
+    res["predict.mean"] = predcMeans;
+    
+    arma::vec mean_avg = arma::mean(evalcMeans, 1);
+    predcMeanm = Rcpp::wrap(mean_avg);
+    res["predict.mean.avg"] = predcMeanm;
+    
+    //Rcpp::NumericVector predcMeanl(npred);
+    //Rcpp::NumericVector predcMeanh(npred);
+  }
+  
+  if(pdf) {
+    res["predict.pdf"] = predcPDFs;
+    
+    arma::mat pdf_avg = arma::mean(evalcPDFs, 2);
+    predcPDFm = Rcpp::wrap(pdf_avg);
+    res["predict.pdf.avg"] = predcPDFm;
+    
+    //Rcpp::NumericMatrix predcPDFl(npred, ngrid);
+    //Rcpp::NumericMatrix predcPDFh(npred, ngrid);
+  }
+  
+  if(cdf) {
+    res["predict.cdf"] = predcCDFs;
+    
+    arma::mat cdf_avg = arma::mean(evalcCDFs, 2);
+    predcCDFm = Rcpp::wrap(cdf_avg);
+    res["predict.cdf.avg"] = predcCDFm;
+    
+    //Rcpp::NumericMatrix predcCDFl(npred, ngrid);
+    //Rcpp::NumericMatrix predcCDFh(npred, ngrid);
+  }
+  
   
   return res;
 }

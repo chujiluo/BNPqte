@@ -23,6 +23,7 @@ Rcpp::List cDPMdensity (
     const arma::uword nskip,
     const arma::uword ndpost,
     const arma::uword keepevery,
+    const arma::uword printevery,
     double alpha,
     double lambda,
     Rcpp::Nullable<Rcpp::NumericVector> m_ = R_NilValue,  // vector of length d
@@ -50,6 +51,7 @@ Rcpp::List cDPMdensity (
   arma::rowvec b_gd(nclusters-1, arma::fill::ones);
   arma::rowvec lw(nclusters);  // log(weight)
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
+  
   arma::colvec grid1(ngrid);
   arma::colvec grid2(ngrid);
   arma::mat ypred(ngrid*ngrid, d);  // arma::mat in column major order
@@ -67,7 +69,7 @@ Rcpp::List cDPMdensity (
       }
     }
   }
-  arma::mat evalPDF(ngrid, ngrid);  // match the grid: grid1 x grid2
+  arma::cube evalPDFs(ngrid, ngrid, ndpost);
   
   
   Rcpp::Rcout << "Initializing..." << std::endl;
@@ -128,10 +130,15 @@ Rcpp::List cDPMdensity (
   Rcpp::NumericMatrix mList(ndpost, d);
   Rcpp::NumericVector lambdaList(ndpost);
   Rcpp::List PsiList(ndpost);  // each is dxd
+  
   Rcpp::List predPDF(ndpost);  // each is a ngridxngrid mat
+  Rcpp::NumericMatrix predPDFm(ngrid, ngrid);
+  Rcpp::NumericMatrix predPDFl(ngrid, ngrid);
+  Rcpp::NumericMatrix predPDFh(ngrid, ngrid);
   
   
   Rcpp::Rcout << "MCMC updating..." << std::endl;
+  arma::uword nmcmc = nskip + ndpost*keepevery;
   //------------------------------------------------------------------
   // start mcmc
   for(arma::uword i=0; i<(nskip+ndpost); i++){
@@ -139,17 +146,25 @@ Rcpp::List cDPMdensity (
       // update (hyper)parameters
       drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
+      if(((i+1)%printevery) == 0)
+        Rcpp::Rcout << " - MCMC scan " << i+1 << " of " << nmcmc << std::endl;
+      
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
         drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
+        if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
+          Rcpp::Rcout << " - MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
       }
       
       // prediction
       if(prediction) {
-        predict_joint(ngrid, d, nclusters, ypred, Zeta, icholOmega, othersOmega, lw, evalPDF);
-        predPDF[i-nskip] = Rcpp::wrap(evalPDF);
+        arma::mat tmp_pdf(ngrid, ngrid);
+        predict_joint(ngrid, d, nclusters, ypred, Zeta, icholOmega, othersOmega, lw, tmp_pdf);
+        
+        evalPDFs.slice(i-nskip) = tmp_pdf;
+        predPDF[i-nskip] = Rcpp::wrap(tmp_pdf);
       }
       
       // keep the posterior sample
@@ -224,6 +239,13 @@ Rcpp::List cDPMdensity (
   }
   if(prediction){
     res["predict.pdf"] = predPDF;
+    
+    arma::mat pdf_avg = arma::mean(evalPDFs, 2);
+    predPDFm = Rcpp::wrap(pdf_avg);
+    res["predict.pdf.avg"] = predPDFm;
+    
+    //Rcpp::NumericMatrix predPDFl(ngrid, ngrid);
+    //Rcpp::NumericMatrix predPDFh(ngrid, ngrid);
   }
 
   return res;

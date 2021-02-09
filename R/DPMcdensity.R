@@ -4,7 +4,7 @@ DPMcdensity = function(y, x,
                        updateAlpha=TRUE, 
                        useHyperpriors=TRUE,
                        nclusters=50L, 
-                       nskip=1000L, ndpost=1000L, keepevery=1L, 
+                       nskip=1000L, ndpost=1000L, keepevery=1L, printevery=1000L,
                        state=NULL, status=TRUE, 
                        alpha=10.0, a0=10.0, b0=1.0, 
                        m=colMeans(cbind(y, x)), m0=colMeans(cbind(y, x)), S0=NULL, 
@@ -196,17 +196,17 @@ DPMcdensity = function(y, x,
   ## print information
   #---------------------------------------------- 
   cat("Fitting a Weighted Dependent DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
-  cat("- Number of observations: ", n, "; Number of covariates: ", d-1, ".\n", sep = "")
+  cat(" - Number of observations: ", n, "; Number of covariates: ", d-1, ".\n", sep = "")
   if(pdf | cdf)
-    cat("- Prediction = TRUE; Prediction type = ", type, "; ngrid(y) = ", ngrid, "; ngrid(x) = ", npred, ".\n", sep = "")
+    cat(" - Prediction = TRUE; Prediction type = ", type, "; ngrid(y) = ", ngrid, "; ngrid(x) = ", npred, ".\n", sep = "")
   else
-    cat("- Prediction = FALSE.\n", sep = "")
+    cat(" - Prediction = FALSE.\n", sep = "")
   if(status)
-    cat("- Start a new analysis.", "\n", sep = "")
+    cat("Start a new analysis...", "\n", sep = "")
   else
-    cat("- Use previous analysis.", "\n", sep = "")
-  cat("- Number of clusters: ", nclusters, "; updateAlpha = ", updateAlpha, "; useHyperpriors = ", useHyperpriors, ".\n", sep = "")
-  
+    cat("Use previous analysis...", "\n", sep = "")
+  cat(" - Number of clusters: ", nclusters, "; updateAlpha = ", updateAlpha, "; useHyperpriors = ", useHyperpriors, ".\n", sep = "")
+  cat(" - Number of MCMC: ", nskip+ndpost*keepevery, ".\n", sep = "")
   
   #----------------------------------------------
   # set random seed
@@ -245,6 +245,7 @@ DPMcdensity = function(y, x,
               nskip,
               ndpost,
               keepevery,
+              printevery,
               alpha,
               lambda,
               m,
@@ -271,18 +272,6 @@ DPMcdensity = function(y, x,
   if(pdf | cdf) {
     res$xpred = xpred;
     res$grid = grid;
-    if(pdf) {
-      res$predict.pdf.mean = apply(simplify2array(res$predict.pdf), c(1, 2), mean)
-      if(compute.band) {
-        #
-      }
-    }
-    if(cdf) {
-      res$predict.cdf.mean = apply(simplify2array(res$predict.cdf), c(1, 2), mean)
-      if(compute.band) {
-        #
-      }
-    }
   }
   
   return(res)

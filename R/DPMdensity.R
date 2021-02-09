@@ -3,7 +3,7 @@ DPMdensity = function(y,
                       updateAlpha=TRUE, 
                       useHyperpriors=TRUE,
                       nclusters=50L, 
-                      nskip=1000L, ndpost=1000L, keepevery=1L, 
+                      nskip=1000L, ndpost=1000L, keepevery=1L, printevery=1000L,
                       state=NULL, status=TRUE, 
                       alpha=10.0, a0=10.0, b0=1.0, 
                       m=colMeans(y), m0=colMeans(y), S0=NULL, 
@@ -160,16 +160,17 @@ DPMdensity = function(y,
   ## print information
   #---------------------------------------------- 
   cat("Fitting a DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
-  cat("- Number of observations: ", n, "; Dimension: ", d, ".\n", sep = "")
+  cat(" - Number of observations: ", n, "; Dimension: ", d, ".\n", sep = "")
   if(prediction)
-    cat("- Prediction = ", prediction, "; ngrid = ", ngrid, ".\n", sep = "")
+    cat(" - Prediction = ", prediction, "; ngrid1 = ", ngrid, ", ngrid2 = ",  ngrid, ".\n", sep = "")
   else
-    cat("- Prediction = ", prediction, ".\n", sep = "")
+    cat(" - Prediction = ", prediction, ".\n", sep = "")
   if(status)
-    cat("- Start a new analysis.", "\n", sep = "")
+    cat("Start a new analysis...", "\n", sep = "")
   else
-    cat("- Use previous analysis.", "\n", sep = "")
-  cat("- Number of clusters: ", nclusters, "; updateAlpha = ", updateAlpha, "; useHyperpriors = ", useHyperpriors, ".\n", sep = "")
+    cat("Use previous analysis...", "\n", sep = "")
+  cat(" - Number of clusters: ", nclusters, "; updateAlpha = ", updateAlpha, "; useHyperpriors = ", useHyperpriors, ".\n", sep = "")
+  cat(" - Number of MCMC: ", nskip+ndpost*keepevery, ".\n", sep = "")
   
   
   #----------------------------------------------
@@ -205,6 +206,7 @@ DPMdensity = function(y,
               nskip,
               ndpost,
               keepevery,
+              printevery,
               alpha,
               lambda,
               m,
@@ -230,7 +232,6 @@ DPMdensity = function(y,
   if(prediction) {
     res$grid1 = grid1
     res$grid2 = grid2
-    res$predict.pdf.mean = apply(simplify2array(res$predict.pdf), c(1, 2), mean)
   }
   
   return(res)
