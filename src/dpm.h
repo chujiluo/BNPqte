@@ -196,7 +196,7 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
     arma::mat xloglik(npred, nclusters);
     arma::rowvec beta0(nclusters);
     arma::rowvec beta(nclusters);
-    arma::rowvec sigma2(nclusters);
+    arma::rowvec sigma(nclusters);
     
     for(arma::uword i=0; i<nclusters; i++) {
       arma::mat omega = Omega.slice(i);
@@ -204,11 +204,17 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
       
       beta(i) = omega(0, 1) / omega(1, 1);
       beta0(i) = zeta(0) - beta(i) * zeta(1);
-      sigma2(i) = omega(0, 0) - beta(i) * omega(1, 0);
-      xloglik.col(i) = arma::log_normpdf(xpred, zeta(1), omega(1, 1));
+      
+      double tmp1 = omega(0, 0) - beta(i) * omega(1, 0);
+      sigma(i) = sqrt(tmp1);
+      
+      double tmp2 = omega(1, 1);
+      tmp2 = sqrt(tmp2);
+      xloglik.col(i) = arma::log_normpdf(xpred, zeta(1), tmp2);
     }
     
     // log_sum_exp(lw+xloglik)
+    
     arma::colvec lwx_norm(npred);
     for(arma::uword i=0; i<npred; i++) {
       arma::rowvec tmp_vec = lw + xloglik.row(i);
@@ -217,32 +223,66 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
     
     // mean and variance for the conditional kernels
     arma::mat cmean = xpred * beta + arma::repmat(beta0, npred, 1);  // npred x nclusters
-    arma::mat cvar = arma::repmat(sigma2, npred, 1);  // npred x nclusters
+    arma::mat csd = arma::repmat(sigma, npred, 1);  // npred x nclusters
+    
+    //Rcpp::Rcout << "max and min beta: " << beta.max() << " " << beta.min() << std::endl;
+    //Rcpp::Rcout << "max and min beta0: " << beta0.max() << " " << beta0.min() << std::endl;
+    //Rcpp::Rcout << "max and min sigma2: " << sigma2.max() << " " << sigma2.min() << std::endl;
     
     for(arma::uword i=0; i<npred; i++) {
       // evalcMean
-      arma::rowvec tmp1 = lw + xloglik.row(i) + cmean.row(i);
+      arma::rowvec tmp1 = lw + xloglik.row(i);
+      tmp1 = exp(tmp1);
+      double tmp2 = arma::as_scalar(tmp1 * cmean.row(i).t());
+      evalcMean(i) = tmp2/exp(lwx_norm(i));
+      
+      /*
+      arma::rowvec tmp1 = lw + xloglik.row(i) + log(cmean.row(i));
       double tmp2 = log_sum_exp(tmp1, true);
+      
+      arma::rowvec tmp3 = log(cmean.row(i));
+      Rcpp::Rcout << "cmean(1): " << cmean(i,1) << " log(cmean(1)): " << tmp3(1) << std::endl;
       evalcMean(i) = exp(tmp2 - lwx_norm(i));
       
+      Rcpp::Rcout << "tmp2: " << tmp2 << " evalcMean: " << evalcMean(i) << std::endl;
+      */
+      
+      /* 
+      //Rcpp::Rcout << "here: " << exp(xloglik(i,0)-lwx_norm(i)) << " " << exp(xloglik(i,1)-lwx_norm(i)) << std::endl;
+      arma::rowvec tmp1 = lw + log(cmean.row(i));
+      double tmp2 = log_sum_exp(tmp1, true);
+      evalcMean(i) = exp(tmp2);
+      */
       for(arma::uword j=0; j<ngrid; j++) {
         // evalcPDF
         if(pdf) {
-          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, cvar);  // output is npred x nclusters, for grid(j) only
+          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);  // output is npred x nclusters, for grid(j) only
           
           arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
           double tmp = log_sum_exp(tmp_vec, true);
           evalcPDF(i, j) = exp(tmp - lwx_norm(i));
+          
+          /*
+          arma::rowvec tmp_vec = lw + gloglik.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcPDF(i, j) = exp(tmp);
+           */
         }
         
         // evalcCDF
         if(cdf) {
-          arma::mat glogcdf = arma::normcdf(grid(j), cmean, cvar);
+          arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
           glogcdf = log(glogcdf);
           
           arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
           double tmp = log_sum_exp(tmp_vec, true);
           evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+           
+          /*
+          arma::rowvec tmp_vec = lw + glogcdf.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcCDF(i, j) = exp(tmp);
+           */
         }
       }
     }
@@ -253,7 +293,7 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
     arma::mat xloglik(npred, nclusters);
     arma::rowvec beta0(nclusters);
     arma::mat beta((d-1), nclusters);
-    arma::rowvec sigma2(nclusters);
+    arma::rowvec sigma(nclusters);
     
     for(arma::uword i=0; i<nclusters; i++) {
       double zeta1 = Zeta(0, i);
@@ -277,7 +317,8 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
       beta0(i) = arma::as_scalar(zeta1 - tmp_vec.t() * zeta2);
       
       // sigma2
-      sigma2(i) = omega(0, 0) - arma::as_scalar(omega12 * tmp_vec);
+      double tmp = omega(0, 0) - arma::as_scalar(omega12 * tmp_vec);
+      sigma(i) = sqrt(tmp);
     }
     
     // log_sum_exp(lw+xloglik)
@@ -289,18 +330,18 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
     
     // mean and variance for the conditional kernels
     arma::mat cmean = xpred * beta + arma::repmat(beta0, npred, 1);  // npred x nclusters
-    arma::mat cvar = arma::repmat(sigma2, npred, 1);  // npred x nclusters
+    arma::mat csd = arma::repmat(sigma, npred, 1);  // npred x nclusters
     
     for(arma::uword i=0; i<npred; i++) {
       // evalcMean
-      arma::rowvec tmp1 = lw + xloglik.row(i) + cmean.row(i);
+      arma::rowvec tmp1 = lw + xloglik.row(i) + log(cmean.row(i));
       double tmp2 = log_sum_exp(tmp1, true);
       evalcMean(i) = exp(tmp2 - lwx_norm(i));
       
       for(arma::uword j=0; j<ngrid; j++) {
         // evalcPDF
         if(pdf) {
-          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, cvar);  // output is npred x nclusters, for grid(j) only
+          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);  // output is npred x nclusters, for grid(j) only
           
           arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
           double tmp = log_sum_exp(tmp_vec, true);
@@ -309,7 +350,7 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
         
         // evalcCDF
         if(cdf) {
-          arma::mat glogcdf = arma::normcdf(grid(j), cmean, cvar);
+          arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
           glogcdf = log(glogcdf);
           
           arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);

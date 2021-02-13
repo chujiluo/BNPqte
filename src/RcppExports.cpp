@@ -6,18 +6,6 @@
 
 using namespace Rcpp;
 
-// wArma
-arma::mat wArma(arma::mat& x, int nu);
-RcppExport SEXP _BNPqte_wArma(SEXP xSEXP, SEXP nuSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< int >::type nu(nuSEXP);
-    rcpp_result_gen = Rcpp::wrap(wArma(x, nu));
-    return rcpp_result_gen;
-END_RCPP
-}
 // cDPMcdensity
 Rcpp::List cDPMcdensity(const arma::uword n, const arma::uword d, const arma::mat& data, const arma::colvec& y, const arma::mat& x, const bool status, const bool pdf, const bool cdf, const arma::uword ngrid, const arma::uword npred, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, const arma::colvec& m0, const arma::mat& S0, const double gamma1, const double gamma2, const int nu0, const arma::mat& Psi0, const int nu, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, const arma::uword printevery, double alpha, double lambda, Rcpp::Nullable<Rcpp::NumericVector> m_, Rcpp::Nullable<Rcpp::NumericMatrix> Psi_, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_, Rcpp::Nullable<Rcpp::NumericVector> grid_, Rcpp::Nullable<Rcpp::NumericMatrix> xpred_);
 RcppExport SEXP _BNPqte_cDPMcdensity(SEXP nSEXP, SEXP dSEXP, SEXP dataSEXP, SEXP ySEXP, SEXP xSEXP, SEXP statusSEXP, SEXP pdfSEXP, SEXP cdfSEXP, SEXP ngridSEXP, SEXP npredSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP printeverySEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP m_SEXP, SEXP Psi_SEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP, SEXP grid_SEXP, SEXP xpred_SEXP) {
@@ -112,7 +100,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_BNPqte_wArma", (DL_FUNC) &_BNPqte_wArma, 2},
     {"_BNPqte_cDPMcdensity", (DL_FUNC) &_BNPqte_cDPMcdensity, 38},
     {"_BNPqte_cDPMdensity", (DL_FUNC) &_BNPqte_cDPMdensity, 34},
     {NULL, NULL, 0}
