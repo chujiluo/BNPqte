@@ -41,8 +41,6 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
   // prepare to update b_gd
   b_gd(0) = alpha + 1.0*n;
   
-  
-  //Rcpp::Rcout << "Updating Zeta and Omega.." << std::endl;
   for(arma::uword i=0; i<nclusters; i++){
     // update Zeta, Omega and cholOmega
     if(clusterSize[i]==0){
@@ -61,11 +59,6 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
       int nu_new = nu + 1.0*clusterSize[i];
       arma::mat tmp_mat = 1.0*clusterSize[i]*m*m.t() - clusterSumy.row(i).t()*clusterSumy.row(i)/lambda - m*clusterSumy.row(i) - clusterSumy.row(i).t()*m.t();
       arma::mat Psi_new = Psi + clusterSumyy.slice(i) + (lambda/lambda_new)*tmp_mat;
-      
-      //Rcpp::Rcout << "lambda: " << lambda << ", lambda_new: " << lambda_new << std::endl;
-      //Rcpp::Rcout << "clusterSumyy: " << clusterSumyy(0, 0, i) << " " << clusterSumyy(0, 1, i) << " " << clusterSumyy(1, 1, i) << std::endl;
-      //Rcpp::Rcout << "tmp_mat: " << tmp_mat(0, 0) << " " << tmp_mat(0, 1) << " " << tmp_mat(1, 1) << std::endl;
-      //Rcpp::Rcout << "Psi: " << Psi(0, 0) << " " << Psi(0, 1) << " " << Psi(1, 1) << std::endl;
       
       arma::mat tmp_omega(d, d);
       arma::mat tmp_cholomega(d, d);
@@ -90,11 +83,11 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     }
   }
   
-  //Rcpp::Rcout << "Updating lw.." << std::endl;
+  
   // update w (weight)
   rGeneralizedDirichletArma(nclusters, a_gd, b_gd, lw);
   
-  //Rcpp::Rcout << "Updating kappa.." << std::endl;
+  
   // update kappa
   arma::mat loglik(n, nclusters);
   
@@ -115,7 +108,7 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     rCat(nclusters, lw_tmp, i, kappa);
   }
   
-  //Rcpp::Rcout << "Updating alpha.." << std::endl;
+  
   // update alpha
   if(updateAlpha){
     double a0_new = a0 + 1.0*nclusters - 1.0;
@@ -138,24 +131,21 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
       sumZetaInvOmegaZeta = sumZetaInvOmegaZeta + tmp;
     }
     
-    //Rcpp::Rcout << "Updating m.." << std::endl;
+    
     // update m
     arma::mat invS0 = arma::inv_sympd(S0);
     arma::mat m_cov = arma::inv_sympd(lambda * sumInvOmega + invS0);
     arma::colvec m_mean = m_cov * (lambda * sumInvOmegaZeta + invS0 * m0);
     m = arma::mvnrnd(m_mean, m_cov);
     
-    //Rcpp::Rcout << "Updating lambda.." << std::endl;
+    
     // update lambda
     double gamma1_new = 0.5*nclusters*d + gamma1;
-    //double gamma1_new = 0.5*nclusters + gamma1;
     double gamma2_new = sumZetaInvOmegaZeta - 2.0 * arma::as_scalar(m.t() * sumInvOmegaZeta) + arma::as_scalar(m.t() * sumInvOmega * m);
     gamma2_new = gamma2 + 0.5*gamma2_new;
-    
-    //Rcpp::Rcout << "gamma1: " << gamma1_new << ", gamma2: " << gamma2_new << std::endl;
     lambda = arma::randg<double>(arma::distr_param(gamma1_new, 1.0/gamma2_new));
     
-    //Rcpp::Rcout << "Updating Psi.." << std::endl;
+    
     // update Psi
     double nu0_new = 1.0*nclusters*nu + nu0;
     arma::mat Psi0_new = arma::inv_sympd(sumInvOmega + arma::inv_sympd(Psi0));

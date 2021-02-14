@@ -69,7 +69,8 @@ Rcpp::List cDPMdensity (
       }
     }
   }
-  arma::cube evalPDFs(ngrid, ngrid, ndpost);
+  arma::mat evalPDF(ngrid, ngrid);
+  arma::mat evalPDFm(ngrid, ngrid, arma::fill::zeros);
   
   
   Rcpp::Rcout << "Initializing..." << std::endl;
@@ -131,10 +132,8 @@ Rcpp::List cDPMdensity (
   Rcpp::NumericVector lambdaList(ndpost);
   Rcpp::List PsiList(ndpost);  // each is dxd
   
-  Rcpp::List predPDF(ndpost);  // each is a ngridxngrid mat
+  Rcpp::List predPDFs(ndpost);  // each is a ngridxngrid mat
   Rcpp::NumericMatrix predPDFm(ngrid, ngrid);
-  Rcpp::NumericMatrix predPDFl(ngrid, ngrid);
-  Rcpp::NumericMatrix predPDFh(ngrid, ngrid);
   
   
   Rcpp::Rcout << "MCMC updating..." << std::endl;
@@ -160,11 +159,10 @@ Rcpp::List cDPMdensity (
       
       // prediction
       if(prediction) {
-        arma::mat tmp_pdf(ngrid, ngrid);
-        predict_joint(ngrid, d, nclusters, ypred, Zeta, icholOmega, othersOmega, lw, tmp_pdf);
+        predict_joint(ngrid, d, nclusters, ypred, Zeta, icholOmega, othersOmega, lw, evalPDF);
         
-        evalPDFs.slice(i-nskip) = tmp_pdf;
-        predPDF[i-nskip] = Rcpp::wrap(tmp_pdf);
+        evalPDFm = evalPDFm + evalPDF;
+        predPDFs[i-nskip] = Rcpp::wrap(evalPDF);
       }
       
       // keep the posterior sample
@@ -202,7 +200,7 @@ Rcpp::List cDPMdensity (
   state["nclusters"] = nclusters;
   state["a0"] = a0;
   state["b0"] = b0;
-  state["m0"] = Rcpp::wrap(m0);
+  state["m0"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(m0));
   state["S0"] = Rcpp::wrap(S0);
   state["gamma1"] = gamma1;
   state["gamma2"] = gamma2;
@@ -210,42 +208,57 @@ Rcpp::List cDPMdensity (
   state["nu0"] = nu0;
   state["Psi0"] = Rcpp::wrap(Psi0);
   state["alpha"] = alpha;
-  state["m"] = Rcpp::wrap(m);
+  state["m"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(m));
   state["lambda"] = lambda;
   state["Psi"] = Rcpp::wrap(Psi);
   state["Zeta"] = ZetaList[ndpost-1];
   state["Omega"] = OmegaList[ndpost-1];
-  state["lw"] = Rcpp::wrap(lw);
-  state["a_gd"] = Rcpp::wrap(a_gd);
-  state["b_gd"] = Rcpp::wrap(b_gd);
-  state["kappa"] = Rcpp::wrap(kappa);
+  state["lw"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(lw));
+  state["a_gd"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(a_gd));
+  state["b_gd"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(b_gd));
+  state["kappa"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(kappa));
     
   
   //------------------------------------------------------------------
   // return
   Rcpp::List res;
+  
+  res["updateAlpha"] = updateAlpha;
+  res["useHyperpriors"] = useHyperpriors;
+  res["status"] = status;
   res["state"] = state;
-  res["cluster.mean"] = ZetaList;
-  res["cluster.covariance"] = OmegaList;
-  res["cluster.weight"] = lwList;
-  res["individual.cluster"] = kappaList;
+  
+  Rcpp::List posterior;
+  posterior["Zeta"] = ZetaList;
+  posterior["Omega"] = OmegaList;
+  posterior["lw"] = lwList;
+  posterior["kappa"] = kappaList;
   if(updateAlpha) {
-    res["alpha"] = alphaList;
+    posterior["alpha"] = alphaList;
+  } else {
+    posterior["alpha"] = alpha;
   }
   if(useHyperpriors) {
-    res["m"] = mList;
-    res["lambda"] = lambdaList;
-    res["Psi"] = PsiList;
+    posterior["m"] = mList;
+    posterior["lambda"] = lambdaList;
+    posterior["Psi"] = PsiList;
+  } else {
+    posterior["m"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(m));
+    posterior["lambda"] = lambda;
+    posterior["Psi"] = Rcpp::wrap(Psi);
   }
+  res["posterior"] = posterior;
+  
+  res["prediction"] = prediction;
   if(prediction){
-    res["predict.pdf"] = predPDF;
+    res["predict.pdfs"] = predPDFs;
     
-    arma::mat pdf_avg = arma::mean(evalPDFs, 2);
-    predPDFm = Rcpp::wrap(pdf_avg);
+    evalPDFm = evalPDFm / ndpost;
+    predPDFm = Rcpp::wrap(evalPDFm);
     res["predict.pdf.avg"] = predPDFm;
     
-    //Rcpp::NumericMatrix predPDFl(ngrid, ngrid);
-    //Rcpp::NumericMatrix predPDFh(ngrid, ngrid);
+    res["grid1"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(grid1));
+    res["grid2"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(grid2));
   }
 
   return res;

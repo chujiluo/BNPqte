@@ -1,10 +1,8 @@
-DPMdensity = function(y, 
-                      ngrid=1000L, grid=NULL,
-                      updateAlpha=TRUE, 
+DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
+                      updateAlpha=TRUE,
                       useHyperpriors=TRUE,
-                      nclusters=50L, 
+                      status=TRUE, state=NULL,
                       nskip=1000L, ndpost=1000L, keepevery=1L, printevery=1000L,
-                      state=NULL, status=TRUE, 
                       alpha=10.0, a0=10.0, b0=1.0, 
                       m=colMeans(y), m0=colMeans(y), S0=NULL, 
                       lambda=0.5, gamma1=3.0, gamma2=2.0, 
@@ -228,11 +226,6 @@ DPMdensity = function(y,
   # returns
   #---------------------------------------------- 
   res$proc.time = proc.time() - ptm
-  res$prediction = prediction
-  if(prediction) {
-    res$grid1 = grid1
-    res$grid2 = grid2
-  }
   
   return(res)
 }
