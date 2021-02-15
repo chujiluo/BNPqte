@@ -156,28 +156,17 @@ Rcpp::List cDPMcdensity (
   for(arma::uword i=0; i<(nskip+ndpost); i++){
     if(i<nskip){
       // update (hyper)parameters
-      auto start = std::chrono::high_resolution_clock::now();
-      
       drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
-      
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-      Rcpp::Rcout << "drawparam (before ndpost): " << duration.count() << std::endl;
         
       if(((i+1)%printevery) == 0)
         Rcpp::Rcout << " - MCMC scan " << i+1 << " of " << nmcmc << std::endl;
+      
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
-        auto start = std::chrono::high_resolution_clock::now();
-        
         drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
-        
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-        Rcpp::Rcout << "drawparam (after ndpost): " << duration.count() << std::endl;
         
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
           Rcpp::Rcout << " - MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
@@ -189,13 +178,7 @@ Rcpp::List cDPMcdensity (
         arma::mat tmp_cdf(npred, ngrid);
         arma::colvec tmp_mean(npred);
         
-        auto start = std::chrono::high_resolution_clock::now();
-        
         predict_conditional(ngrid, npred, d, nclusters, grid, xpred, Zeta, Omega, lw, pdf, cdf, meanReg, tmp_pdf, tmp_cdf, tmp_mean);
-        
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-        Rcpp::Rcout << "drawppredict_conditional: " << duration.count() << std::endl;
         
         if(meanReg)
           evalcMeans.col(i-nskip) = tmp_mean;
@@ -294,8 +277,6 @@ Rcpp::List cDPMcdensity (
   res["posterior"] = posterior;
   
   if(meanReg) {
-    auto start = std::chrono::high_resolution_clock::now();
-    
     predcMeans = Rcpp::wrap(evalcMeans.t());  //ndpostxnpred
     res["predict.meanRegs"] = predcMeans;
     
@@ -324,15 +305,9 @@ Rcpp::List cDPMcdensity (
       res["predict.meanReg.lower"] = predcMeanl;
       res["predict.meanReg.upper"] = predcMeanh;
     }
-    
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-    Rcpp::Rcout << "meanReg: " << duration.count() << std::endl;
   }
   
   if(pdf) {
-    auto start = std::chrono::high_resolution_clock::now();
-    
     res["predict.pdfs"] = predcPDFs;
     
     arma::mat tmp_avg = arma::mean(evalcPDFs, 2);
@@ -362,15 +337,9 @@ Rcpp::List cDPMcdensity (
       res["predict.pdf.lower"] = predcPDFl;
       res["predict.pdf.upper"] = predcPDFh;
     }
-    
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-    Rcpp::Rcout << "pdf: " << duration.count() << std::endl;
   }
   
   if(cdf) {
-    auto start = std::chrono::high_resolution_clock::now();
-    
     res["predict.cdfs"] = predcCDFs;
     
     arma::mat tmp_avg = arma::mean(evalcCDFs, 2);
@@ -400,10 +369,6 @@ Rcpp::List cDPMcdensity (
       res["predict.cdf.lower"] = predcCDFl;
       res["predict.cdf.upper"] = predcCDFh;
     }
-    
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-    Rcpp::Rcout << "cdf: " << duration.count() << std::endl;
   }
   
   return res;

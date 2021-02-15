@@ -273,11 +273,17 @@ DPMcdensity = function(y, x, nclusters=50L,
   #---------------------------------------------- 
   res$proc.time = proc.time() - ptm
   
-  res$type.pred = type.pred
   if(any(pdf, cdf, meanReg)) {
+    res$prediction = TRUE
+    res$type.pred = type.pred
+    res$compute.band = compute.band
     res$xpred = xpred
     res$grid = grid
+  } else {
+    res$prediction = FALSE
   }
+  
+  attr(res, 'class') <- 'DPMcdensity'
   
   return(res)
 }

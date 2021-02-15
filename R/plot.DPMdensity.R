@@ -27,9 +27,9 @@ plot.DPMdensity = function(object, diff=FALSE, true_density=NULL, true_density_f
                     y = object$grid2, 
                     z = (true_density - object$predict.pdf.avg)) %>% 
         add_surface() %>% 
-        layout(title = "(True Density - Predicted Density) Surface", scene = list(xaxis = list(title = "Y1"),
-                                                                                  yaxis = list(title = "Y2"),
-                                                                                  zaxis = list(title = "Density")))
+        layout(title = "(True Density - Predicted Averaged Density) Surface", scene = list(xaxis = list(title = "Y1"),
+                                                                                           yaxis = list(title = "Y2"),
+                                                                                           zaxis = list(title = "Density")))
     }
     
   } else {
@@ -38,9 +38,9 @@ plot.DPMdensity = function(object, diff=FALSE, true_density=NULL, true_density_f
                   y = object$grid2, 
                   z = object$predict.pdf.avg) %>% 
       add_surface() %>% 
-      layout(title = "Predicted Density Surface", scene = list(xaxis = list(title = "Y1"),
-                                                               yaxis = list(title = "Y2"),
-                                                               zaxis = list(title = "Density")))
+      layout(title = "Predicted Averaged Density Surface", scene = list(xaxis = list(title = "Y1"),
+                                                                        yaxis = list(title = "Y2"),
+                                                                        zaxis = list(title = "Density")))
   }
   
   fig

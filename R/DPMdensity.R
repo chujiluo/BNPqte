@@ -227,6 +227,8 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
   #---------------------------------------------- 
   res$proc.time = proc.time() - ptm
   
+  attr(res, 'class') <- 'DPMdensity'
+  
   return(res)
 }
 
