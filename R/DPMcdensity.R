@@ -71,7 +71,7 @@ DPMcdensity = function(y, x, nclusters=50L,
     
     if(is.null(grid)) {
       ### ngrid > 0
-      grid <- seq(from = (min(y) - 0.25 * sd(y)), to = (max(y) + 0.25 * sd(y)), length.out = ngrid)
+      grid = seq(from = (min(y) - 0.25 * sd(y)), to = (max(y) + 0.25 * sd(y)), length.out = ngrid)
     } else {
       ### grid is provided
       grid = as.vector(grid)
@@ -91,7 +91,7 @@ DPMcdensity = function(y, x, nclusters=50L,
         hpd = TRUE
       else
         bci = TRUE
-  }   
+  }
 
   
   ##-----------------------------

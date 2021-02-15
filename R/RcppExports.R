@@ -9,6 +9,10 @@ cDPMdensity <- function(n, d, y, status, prediction, ngrid, updateAlpha, useHype
     .Call(`_BNPqte_cDPMdensity`, n, d, y, status, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid1_, grid2_)
 }
 
+cpDPMcdensity <- function(ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci) {
+    .Call(`_BNPqte_cpDPMcdensity`, ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci)
+}
+
 cpDPMdensity <- function(ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList) {
     .Call(`_BNPqte_cpDPMdensity`, ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList)
 }

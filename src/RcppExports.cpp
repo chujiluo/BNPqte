@@ -101,6 +101,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpDPMcdensity
+Rcpp::List cpDPMcdensity(const arma::uword ngrid, const arma::uword npred, arma::colvec& grid, arma::mat& xpred, const arma::uword d, const arma::uword nclusters, const arma::uword ndpost, const Rcpp::List& ZetaList, const Rcpp::List& OmegaList, const arma::mat& lwList, const bool pdf, const bool cdf, const bool meanReg, const bool hpd, const bool bci);
+RcppExport SEXP _BNPqte_cpDPMcdensity(SEXP ngridSEXP, SEXP npredSEXP, SEXP gridSEXP, SEXP xpredSEXP, SEXP dSEXP, SEXP nclustersSEXP, SEXP ndpostSEXP, SEXP ZetaListSEXP, SEXP OmegaListSEXP, SEXP lwListSEXP, SEXP pdfSEXP, SEXP cdfSEXP, SEXP meanRegSEXP, SEXP hpdSEXP, SEXP bciSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::uword >::type ngrid(ngridSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type npred(npredSEXP);
+    Rcpp::traits::input_parameter< arma::colvec& >::type grid(gridSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type xpred(xpredSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type nclusters(nclustersSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type ndpost(ndpostSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type ZetaList(ZetaListSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type OmegaList(OmegaListSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type lwList(lwListSEXP);
+    Rcpp::traits::input_parameter< const bool >::type pdf(pdfSEXP);
+    Rcpp::traits::input_parameter< const bool >::type cdf(cdfSEXP);
+    Rcpp::traits::input_parameter< const bool >::type meanReg(meanRegSEXP);
+    Rcpp::traits::input_parameter< const bool >::type hpd(hpdSEXP);
+    Rcpp::traits::input_parameter< const bool >::type bci(bciSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpDPMcdensity(ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpDPMdensity
 Rcpp::List cpDPMdensity(const arma::uword ngrid, const arma::colvec& grid1, const arma::colvec& grid2, const arma::uword d, const arma::uword nclusters, const arma::uword ndpost, const Rcpp::List& ZetaList, const Rcpp::List& OmegaList, const arma::mat& lwList);
 RcppExport SEXP _BNPqte_cpDPMdensity(SEXP ngridSEXP, SEXP grid1SEXP, SEXP grid2SEXP, SEXP dSEXP, SEXP nclustersSEXP, SEXP ndpostSEXP, SEXP ZetaListSEXP, SEXP OmegaListSEXP, SEXP lwListSEXP) {
@@ -124,6 +149,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_BNPqte_cDPMcdensity", (DL_FUNC) &_BNPqte_cDPMcdensity, 41},
     {"_BNPqte_cDPMdensity", (DL_FUNC) &_BNPqte_cDPMdensity, 34},
+    {"_BNPqte_cpDPMcdensity", (DL_FUNC) &_BNPqte_cpDPMcdensity, 15},
     {"_BNPqte_cpDPMdensity", (DL_FUNC) &_BNPqte_cpDPMdensity, 9},
     {NULL, NULL, 0}
 };
