@@ -16,6 +16,46 @@ static double log_sum_exp(arma::rowvec & v, const bool logd = true){
   return exp(mx)*sm;
 }
 
+// compute 100(1-alpha)% HPD and Bayesian credible interval for a vector x, using Chen-Shao HPD estimation algorithm
+static void credible_interval(arma::uword n, double alpha, arma::rowvec & x, arma::vec & lower, arma::vec & upper) {
+  
+  int nq1 = (int)round((n*alpha/2.0));
+  int nq2 = (int)round((n*(1.0-alpha/2.0)));
+  int nq = nq2 - nq1;
+  
+  // sort x from low to high
+  arma::rowvec sorted_x = arma::sort(x);
+  
+  // Bayesian credible interval
+  lower(0) = sorted_x(std::max(nq1-1, 0));
+  upper(0) = sorted_x(std::max(nq2-1, 0));
+  
+  // Highest posterior interval
+  double hpd_width = 0.0;
+  double hpd_lower = 0.0;
+  double hpd_upper = 0.0;
+  
+  for(int i=0; i<(n-nq); i++) {
+    double tmp_lower = sorted_x(i);
+    double tmp_upper = sorted_x(i+nq);
+    double tmp_width = tmp_upper - tmp_lower;
+    if(i==0) {
+      hpd_width = tmp_width;
+      hpd_lower = tmp_lower;
+      hpd_upper = tmp_upper;
+    } else {
+      if(hpd_width > tmp_width) {
+        hpd_width = tmp_width;
+        hpd_lower = tmp_lower;
+        hpd_upper = tmp_upper;
+      }
+    }
+  }
+  
+  lower(1) = hpd_lower;
+  upper(1) = hpd_upper;
+}
+
 
 // Multivariate distributions
 

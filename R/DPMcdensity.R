@@ -1,11 +1,10 @@
-DPMcdensity = function(y, x, 
+DPMcdensity = function(y, x, nclusters=50L,
                        xpred=NULL, ngrid=1000L, grid=NULL, 
-                       type="pdf", compute.band=TRUE,
+                       type.pred=c("pdf"), compute.band=TRUE, type.band="HPD",
                        updateAlpha=TRUE, 
                        useHyperpriors=TRUE,
-                       nclusters=50L, 
+                       status=TRUE, state=NULL,
                        nskip=1000L, ndpost=1000L, keepevery=1L, printevery=1000L,
-                       state=NULL, status=TRUE, 
                        alpha=10.0, a0=10.0, b0=1.0, 
                        m=colMeans(cbind(y, x)), m0=colMeans(cbind(y, x)), S0=NULL, 
                        lambda=0.5, gamma1=3.0, gamma2=2.0, 
@@ -48,49 +47,52 @@ DPMcdensity = function(y, x,
   x = as.matrix(x)
   
   ##-----------------------------
-  ## ngrid, grid, type, xpred
+  ## ngrid, grid, type.pred, xpred, compute.band, type.band
   ##-----------------------------
-  if(is.null(xpred)) {
-    pdf = cdf = FALSE
+  pdf = cdf = meanReg = FALSE
+  if((!is.null(xpred)) & ((ngrid > 0) | (!is.null(grid)))) {
+    xpred = as.matrix(xpred)
+    npred = nrow(xpred)
+    
+    if(ncol(xpred) != (d-1))
+      stop("xpred is required to have the same number of columns as x.")
+    
+    type.pred = as.vector(type.pred)
+    if(!all(type.pred %in% c("pdf", "cdf", "meanReg"))) {
+      stop("Available type.pred are: pdf, cdf and meanReg.")
+    } else {
+      if("pdf" %in% type.pred)
+        pdf = TRUE
+      if("cdf" %in% type.pred)
+        cdf = TRUE
+      if("meanReg" %in% type.pred)
+        meanReg = TRUE
+    }
+    
+    if(is.null(grid)) {
+      ### ngrid > 0
+      grid <- seq(from = (min(y) - 0.25 * sd(y)), to = (max(y) + 0.25 * sd(y)), length.out = ngrid)
+    } else {
+      ### grid is provided
+      grid = as.vector(grid)
+      ngrid = length(grid)
+    }
+  } else {
     ngrid = npred = 0
     grid = xpred = NULL
-  } else {
-    if((ngrid <= 0) & is.null(grid)) {
-      pdf = cdf = FALSE
-      ngrid = npred = 0
-      grid = xpred = NULL
-    } else {
-      xpred = as.matrix(xpred)
-      npred = nrow(xpred)
-      if(ncol(xpred) != (d-1))
-        stop("xpred is required to have the same number of columns as x.")
-      
-      if(!(type %in% c("pdf", "cdf", "both"))) {
-        stop("type is required to be one of pdf, cdf and both.")
-      } else {
-        if(type == "pdf") {
-          pdf = TRUE
-          cdf = FALSE
-        }
-        if(type == "cdf") {
-          pdf = FALSE
-          cdf = TRUE
-        }
-        if(type == "both")
-          pdf = cdf = TRUE
-      }
-      
-      if(is.null(grid)) {
-        ### ngrid > 0
-        grid <- seq(from = (min(y) - 0.25 * sd(y)), to = (max(y) + 0.25 * sd(y)), length.out = ngrid)
-      } else {
-        ### grid is provided
-        grid = as.vector(grid)
-        ngrid = length(grid)
-      }
-    }
   }
   
+  hpd = bci = FALSE
+  if(compute.band) {
+    if(!(type.band %in% c("HPD", "BCI")))
+      stop("Only two available bands are provided: HPD (Highest posterior interval ) and BCI (Bayesian credible interval).")
+    else
+      if(type.band == "HPD")
+        hpd = TRUE
+      else
+        bci = TRUE
+  }   
+
   
   ##-----------------------------
   ## state, status
@@ -197,8 +199,8 @@ DPMcdensity = function(y, x,
   #---------------------------------------------- 
   cat("Fitting a Weighted Dependent DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
   cat(" - Number of observations: ", n, "; Number of covariates: ", d-1, ".\n", sep = "")
-  if(pdf | cdf)
-    cat(" - Prediction = TRUE; Prediction type = ", type, "; ngrid(y) = ", ngrid, "; ngrid(x) = ", npred, ".\n", sep = "")
+  if(any(pdf, cdf, meanReg))
+    cat(" - Prediction = TRUE; Prediction Type = ", paste(type.pred, collapse = ", "), "; ngrid of y = ", ngrid, "; ngrid of x = ", npred, ".\n", sep = "")
   else
     cat(" - Prediction = FALSE.\n", sep = "")
   if(status)
@@ -228,8 +230,11 @@ DPMcdensity = function(y, x,
               status,
               pdf,
               cdf,
+              meanReg,
               ngrid,
               npred,
+              hpd,
+              bci,
               updateAlpha,
               useHyperpriors,
               a0,
@@ -267,11 +272,11 @@ DPMcdensity = function(y, x,
   # returns
   #---------------------------------------------- 
   res$proc.time = proc.time() - ptm
-  res$pdf = pdf
-  res$cdf = cdf
-  if(pdf | cdf) {
-    res$xpred = xpred;
-    res$grid = grid;
+  
+  res$type.pred = type.pred
+  if(any(pdf, cdf, meanReg)) {
+    res$xpred = xpred
+    res$grid = grid
   }
   
   return(res)
