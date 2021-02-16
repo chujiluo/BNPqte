@@ -122,7 +122,7 @@ plot.DPMcdensity = function(object, xpred.idx=c(1),
         lines(object$predict.meanReg.lower, lty=2)
         lines(object$predict.meanReg.avg)
       } else {
-        plot(object$predict.meanReg.avg, type="l", type="l",
+        plot(object$predict.meanReg.avg, type="l", 
              xlab="x-index", ylab="E(y|x)",
              ylim = c(min(object$predict.meanReg.avg)-0.5, max(object$predict.meanReg.avg)+0.5))
       }
