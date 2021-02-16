@@ -211,32 +211,38 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
     arma::mat cmean = xpred * beta + arma::repmat(beta0, npred, 1);  // npred x nclusters
     arma::mat csd = arma::repmat(sigma, npred, 1);  // npred x nclusters
     
-    for(arma::uword i=0; i<npred; i++) {
-      // evalcMean
-      if(meanReg) {
+    // evalcMean
+    if(meanReg) {
+      for(arma::uword i=0; i<npred; i++) {
         arma::rowvec tmp1 = exp(lw + xloglik.row(i));
         double tmp2 = arma::as_scalar(tmp1 * cmean.row(i).t());
         evalcMean(i) = tmp2/exp(lwx_norm(i));
       }
-      
+    }
+    
+    if(pdf || cdf) {
       for(arma::uword j=0; j<ngrid; j++) {
-        // evalcPDF
         if(pdf) {
-          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);  // output is npred x nclusters, for grid(j) only
+          // evalcPDF
+          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
           
-          arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
-          double tmp = log_sum_exp(tmp_vec, true);
-          evalcPDF(i, j) = exp(tmp - lwx_norm(i));
-        }
-        
-        // evalcCDF
+          for(arma::uword i=0; i<npred; i++) {
+            arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
+            double tmp = log_sum_exp(tmp_vec, true);
+            evalcPDF(i, j) = exp(tmp - lwx_norm(i));
+          }
+          
+        } 
         if(cdf) {
+          // evalcCDF
           arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
           glogcdf = log(glogcdf);
           
-          arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
-          double tmp = log_sum_exp(tmp_vec, true);
-          evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+          for(arma::uword i=0; i<npred; i++) {
+            arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
+            double tmp = log_sum_exp(tmp_vec, true);
+            evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+          }
         }
       }
     }
@@ -286,36 +292,42 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
     arma::mat cmean = xpred * beta + arma::repmat(beta0, npred, 1);  // npred x nclusters
     arma::mat csd = arma::repmat(sigma, npred, 1);  // npred x nclusters
     
-    for(arma::uword i=0; i<npred; i++) {
-      // evalcMean
-      if(meanReg) {
+    // evalcMean
+    if(meanReg) {
+      for(arma::uword i=0; i<npred; i++) {
         arma::rowvec tmp1 = exp(lw + xloglik.row(i));
         double tmp2 = arma::as_scalar(tmp1 * cmean.row(i).t());
         evalcMean(i) = tmp2/exp(lwx_norm(i));
       }
-      
-      
+    }
+    
+    if(pdf || cdf) {
       for(arma::uword j=0; j<ngrid; j++) {
-        // evalcPDF
         if(pdf) {
-          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);  // output is npred x nclusters, for grid(j) only
+          // evalcPDF
+          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
           
-          arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
-          double tmp = log_sum_exp(tmp_vec, true);
-          evalcPDF(i, j) = exp(tmp - lwx_norm(i));
+          for(arma::uword i=0; i<npred; i++) {
+            arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
+            double tmp = log_sum_exp(tmp_vec, true);
+            evalcPDF(i, j) = exp(tmp - lwx_norm(i));
+          }
+          
         }
         
-        // evalcCDF
         if(cdf) {
+          // evalcCDF
           arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
           glogcdf = log(glogcdf);
           
-          arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
-          double tmp = log_sum_exp(tmp_vec, true);
-          evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+          for(arma::uword i=0; i<npred; i++) {
+            arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
+            double tmp = log_sum_exp(tmp_vec, true);
+            evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+          }
         }
+        
       }
-      
     }
     
   }
