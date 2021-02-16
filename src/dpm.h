@@ -220,29 +220,29 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
       }
     }
     
-    if(pdf || cdf) {
+    // evalcPDF
+    if(pdf) {
       for(arma::uword j=0; j<ngrid; j++) {
-        if(pdf) {
-          // evalcPDF
-          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
-          
-          for(arma::uword i=0; i<npred; i++) {
-            arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
-            double tmp = log_sum_exp(tmp_vec, true);
-            evalcPDF(i, j) = exp(tmp - lwx_norm(i));
-          }
-          
-        } 
-        if(cdf) {
-          // evalcCDF
-          arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
-          glogcdf = log(glogcdf);
-          
-          for(arma::uword i=0; i<npred; i++) {
-            arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
-            double tmp = log_sum_exp(tmp_vec, true);
-            evalcCDF(i, j) = exp(tmp - lwx_norm(i));
-          }
+        arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
+        
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcPDF(i, j) = exp(tmp - lwx_norm(i));
+        }
+      }
+    }
+    
+    // evalcCDF
+    if(cdf) {
+      for(arma::uword j=0; j<ngrid; j++) {
+        arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
+        glogcdf = log(glogcdf);
+        
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcCDF(i, j) = exp(tmp - lwx_norm(i));
         }
       }
     }
@@ -301,32 +301,30 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
       }
     }
     
-    if(pdf || cdf) {
+    // evalcPDF
+    if(pdf) {
       for(arma::uword j=0; j<ngrid; j++) {
-        if(pdf) {
-          // evalcPDF
-          arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
-          
-          for(arma::uword i=0; i<npred; i++) {
-            arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
-            double tmp = log_sum_exp(tmp_vec, true);
-            evalcPDF(i, j) = exp(tmp - lwx_norm(i));
-          }
-          
-        }
+        arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
         
-        if(cdf) {
-          // evalcCDF
-          arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
-          glogcdf = log(glogcdf);
-          
-          for(arma::uword i=0; i<npred; i++) {
-            arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
-            double tmp = log_sum_exp(tmp_vec, true);
-            evalcCDF(i, j) = exp(tmp - lwx_norm(i));
-          }
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcPDF(i, j) = exp(tmp - lwx_norm(i));
         }
+      }
+    }
+    
+    // evalcCDF
+    if(cdf) {
+      for(arma::uword j=0; j<ngrid; j++) {
+        arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
+        glogcdf = log(glogcdf);
         
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+        }
       }
     }
     
