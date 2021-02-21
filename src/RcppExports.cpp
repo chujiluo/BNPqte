@@ -145,12 +145,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// timesTwo
+double timesTwo(arma::mat& x, arma::uword i);
+RcppExport SEXP _BNPqte_timesTwo(SEXP xSEXP, SEXP iSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type i(iSEXP);
+    rcpp_result_gen = Rcpp::wrap(timesTwo(x, i));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_BNPqte_cDPMcdensity", (DL_FUNC) &_BNPqte_cDPMcdensity, 41},
     {"_BNPqte_cDPMdensity", (DL_FUNC) &_BNPqte_cDPMdensity, 34},
     {"_BNPqte_cpDPMcdensity", (DL_FUNC) &_BNPqte_cpDPMcdensity, 15},
     {"_BNPqte_cpDPMdensity", (DL_FUNC) &_BNPqte_cpDPMdensity, 9},
+    {"_BNPqte_timesTwo", (DL_FUNC) &_BNPqte_timesTwo, 2},
     {NULL, NULL, 0}
 };
 

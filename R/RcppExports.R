@@ -17,3 +17,7 @@ cpDPMdensity <- function(ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, Om
     .Call(`_BNPqte_cpDPMdensity`, ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList)
 }
 
+timesTwo <- function(x, i) {
+    .Call(`_BNPqte_timesTwo`, x, i)
+}
+

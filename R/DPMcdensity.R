@@ -277,6 +277,7 @@ DPMcdensity = function(y, x, nclusters=50L,
     res$prediction = TRUE
     res$type.pred = type.pred
     res$compute.band = compute.band
+    res$type.band = type.band
     res$xpred = xpred
     res$grid = grid
   } else {
