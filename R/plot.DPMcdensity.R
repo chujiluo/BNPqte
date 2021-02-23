@@ -9,9 +9,9 @@ plot.DPMcdensity = function(object, xpred.idx=c(1),
     stop("No pdf, cdf or mean regression curve is evaluated in the DPMcdensity() function.")
   
   if(ncol(object$xpred) == 1)
-    stringX = paste(object$xpred[xpred.idx, ])
+    stringX = paste(round(object$xpred[xpred.idx, ], 3))
   else
-    stringX = paste("c(", apply(as.matrix(object$xpred[xpred.idx, ]), 1, toString), ")", sep="")
+    stringX = paste("c(", apply(round(as.matrix(object$xpred[xpred.idx, ]), 3), 1, toString), ")", sep="")
   
   
   if("pdf" %in% object$type.pred) {
