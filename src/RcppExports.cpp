@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // cDPMcdensity
-Rcpp::List cDPMcdensity(const arma::uword n, const arma::uword d, const arma::mat& data, const arma::colvec& y, const arma::mat& x, const bool status, const bool pdf, const bool cdf, const bool meanReg, const arma::uword ngrid, const arma::uword npred, const bool hpd, const bool bci, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, const arma::colvec& m0, const arma::mat& S0, const double gamma1, const double gamma2, const int nu0, const arma::mat& Psi0, const int nu, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, const arma::uword printevery, double alpha, double lambda, Rcpp::Nullable<Rcpp::NumericVector> m_, Rcpp::Nullable<Rcpp::NumericMatrix> Psi_, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_, Rcpp::Nullable<Rcpp::NumericVector> grid_, Rcpp::Nullable<Rcpp::NumericMatrix> xpred_);
-RcppExport SEXP _BNPqte_cDPMcdensity(SEXP nSEXP, SEXP dSEXP, SEXP dataSEXP, SEXP ySEXP, SEXP xSEXP, SEXP statusSEXP, SEXP pdfSEXP, SEXP cdfSEXP, SEXP meanRegSEXP, SEXP ngridSEXP, SEXP npredSEXP, SEXP hpdSEXP, SEXP bciSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP printeverySEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP m_SEXP, SEXP Psi_SEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP, SEXP grid_SEXP, SEXP xpred_SEXP) {
+Rcpp::List cDPMcdensity(const arma::uword n, const arma::uword d, const arma::mat& data, const arma::colvec& y, const arma::mat& x, const bool status, const bool diag, const bool pdf, const bool cdf, const bool meanReg, const arma::uword ngrid, const arma::uword npred, const bool hpd, const bool bci, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, const arma::colvec& m0, const arma::mat& S0, const double gamma1, const double gamma2, const int nu0, const arma::mat& Psi0, const int nu, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, const arma::uword printevery, double alpha, double lambda, Rcpp::Nullable<Rcpp::NumericVector> m_, Rcpp::Nullable<Rcpp::NumericMatrix> Psi_, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_, Rcpp::Nullable<Rcpp::NumericVector> grid_, Rcpp::Nullable<Rcpp::NumericMatrix> xpred_);
+RcppExport SEXP _BNPqte_cDPMcdensity(SEXP nSEXP, SEXP dSEXP, SEXP dataSEXP, SEXP ySEXP, SEXP xSEXP, SEXP statusSEXP, SEXP diagSEXP, SEXP pdfSEXP, SEXP cdfSEXP, SEXP meanRegSEXP, SEXP ngridSEXP, SEXP npredSEXP, SEXP hpdSEXP, SEXP bciSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP printeverySEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP m_SEXP, SEXP Psi_SEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP, SEXP grid_SEXP, SEXP xpred_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -18,6 +18,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::colvec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const bool >::type status(statusSEXP);
+    Rcpp::traits::input_parameter< const bool >::type diag(diagSEXP);
     Rcpp::traits::input_parameter< const bool >::type pdf(pdfSEXP);
     Rcpp::traits::input_parameter< const bool >::type cdf(cdfSEXP);
     Rcpp::traits::input_parameter< const bool >::type meanReg(meanRegSEXP);
@@ -53,13 +54,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type kappa_(kappa_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type grid_(grid_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type xpred_(xpred_SEXP);
-    rcpp_result_gen = Rcpp::wrap(cDPMcdensity(n, d, data, y, x, status, pdf, cdf, meanReg, ngrid, npred, hpd, bci, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid_, xpred_));
+    rcpp_result_gen = Rcpp::wrap(cDPMcdensity(n, d, data, y, x, status, diag, pdf, cdf, meanReg, ngrid, npred, hpd, bci, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid_, xpred_));
     return rcpp_result_gen;
 END_RCPP
 }
 // cDPMdensity
-Rcpp::List cDPMdensity(const arma::uword n, const arma::uword d, const arma::mat& y, const bool status, const bool prediction, const arma::uword ngrid, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, const arma::colvec& m0, const arma::mat& S0, const double gamma1, const double gamma2, const int nu0, const arma::mat& Psi0, const int nu, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, const arma::uword printevery, double alpha, double lambda, Rcpp::Nullable<Rcpp::NumericVector> m_, Rcpp::Nullable<Rcpp::NumericMatrix> Psi_, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_, Rcpp::Nullable<Rcpp::NumericVector> grid1_, Rcpp::Nullable<Rcpp::NumericVector> grid2_);
-RcppExport SEXP _BNPqte_cDPMdensity(SEXP nSEXP, SEXP dSEXP, SEXP ySEXP, SEXP statusSEXP, SEXP predictionSEXP, SEXP ngridSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP printeverySEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP m_SEXP, SEXP Psi_SEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP, SEXP grid1_SEXP, SEXP grid2_SEXP) {
+Rcpp::List cDPMdensity(const arma::uword n, const arma::uword d, const arma::mat& y, const bool status, const bool diag, const bool prediction, const arma::uword ngrid, const bool updateAlpha, const bool useHyperpriors, const double a0, const double b0, const arma::colvec& m0, const arma::mat& S0, const double gamma1, const double gamma2, const int nu0, const arma::mat& Psi0, const int nu, const arma::uword nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, const arma::uword printevery, double alpha, double lambda, Rcpp::Nullable<Rcpp::NumericVector> m_, Rcpp::Nullable<Rcpp::NumericMatrix> Psi_, Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_, Rcpp::Nullable<Rcpp::List> Omega_, Rcpp::Nullable<Rcpp::NumericVector> a_gd_, Rcpp::Nullable<Rcpp::NumericVector> b_gd_, Rcpp::Nullable<Rcpp::NumericVector> lw_, Rcpp::Nullable<Rcpp::IntegerVector> kappa_, Rcpp::Nullable<Rcpp::NumericVector> grid1_, Rcpp::Nullable<Rcpp::NumericVector> grid2_);
+RcppExport SEXP _BNPqte_cDPMdensity(SEXP nSEXP, SEXP dSEXP, SEXP ySEXP, SEXP statusSEXP, SEXP diagSEXP, SEXP predictionSEXP, SEXP ngridSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP m0SEXP, SEXP S0SEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP Psi0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP printeverySEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP m_SEXP, SEXP Psi_SEXP, SEXP Zeta_SEXP, SEXP Omega_SEXP, SEXP a_gd_SEXP, SEXP b_gd_SEXP, SEXP lw_SEXP, SEXP kappa_SEXP, SEXP grid1_SEXP, SEXP grid2_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -67,6 +68,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::uword >::type d(dSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const bool >::type status(statusSEXP);
+    Rcpp::traits::input_parameter< const bool >::type diag(diagSEXP);
     Rcpp::traits::input_parameter< const bool >::type prediction(predictionSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type ngrid(ngridSEXP);
     Rcpp::traits::input_parameter< const bool >::type updateAlpha(updateAlphaSEXP);
@@ -97,7 +99,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type kappa_(kappa_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type grid1_(grid1_SEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type grid2_(grid2_SEXP);
-    rcpp_result_gen = Rcpp::wrap(cDPMdensity(n, d, y, status, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid1_, grid2_));
+    rcpp_result_gen = Rcpp::wrap(cDPMdensity(n, d, y, status, diag, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid1_, grid2_));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -159,8 +161,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_BNPqte_cDPMcdensity", (DL_FUNC) &_BNPqte_cDPMcdensity, 41},
-    {"_BNPqte_cDPMdensity", (DL_FUNC) &_BNPqte_cDPMdensity, 34},
+    {"_BNPqte_cDPMcdensity", (DL_FUNC) &_BNPqte_cDPMcdensity, 42},
+    {"_BNPqte_cDPMdensity", (DL_FUNC) &_BNPqte_cDPMdensity, 35},
     {"_BNPqte_cpDPMcdensity", (DL_FUNC) &_BNPqte_cpDPMcdensity, 15},
     {"_BNPqte_cpDPMdensity", (DL_FUNC) &_BNPqte_cpDPMdensity, 9},
     {"_BNPqte_timesTwo", (DL_FUNC) &_BNPqte_timesTwo, 2},

@@ -3,7 +3,7 @@ DPMcdensity = function(y, x, nclusters=50L,
                        type.pred=c("pdf"), compute.band=TRUE, type.band="HPD",
                        updateAlpha=TRUE, 
                        useHyperpriors=TRUE,
-                       status=TRUE, state=NULL,
+                       status=TRUE, state=NULL, diag=FALSE,
                        nskip=1000L, ndpost=1000L, keepevery=1L, printevery=1000L,
                        alpha=10.0, a0=10.0, b0=1.0, 
                        m=colMeans(cbind(y, x)), m0=colMeans(cbind(y, x)), S0=NULL, 
@@ -197,7 +197,7 @@ DPMcdensity = function(y, x, nclusters=50L,
   #---------------------------------------------- 
   ## print information
   #---------------------------------------------- 
-  cat("Fitting a Weighted Dependent DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
+  cat("Fitting a Weight-Dependent DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
   cat(" - Number of observations: ", n, "; Number of covariates: ", d-1, ".\n", sep = "")
   if(any(pdf, cdf, meanReg))
     cat(" - Prediction = TRUE; Prediction Type = ", paste(type.pred, collapse = ", "), "; ngrid of y = ", ngrid, "; ngrid of x = ", npred, ".\n", sep = "")
@@ -228,6 +228,7 @@ DPMcdensity = function(y, x, nclusters=50L,
               y,
               x,
               status,
+              diag,
               pdf,
               cdf,
               meanReg,

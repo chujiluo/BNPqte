@@ -22,7 +22,7 @@ static void setparam(arma::uword n, arma::uword nclusters, arma::colvec & m, dou
 
 //------------------------------------------------------------------
 // update (hyper)parameters
-static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa){
+static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa, bool diag, double & lmpp){
   
   // calculate sufficient statistics
   std::vector<std::vector<unsigned>> clusterMembers(nclusters);
@@ -37,6 +37,11 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     clusterSumyy.slice(kappa(i)) = clusterSumyy.slice(kappa(i)) + y.row(i).t() * y.row(i);
   }
   
+  // compute log marginal partition posterior for further convergence diagnostics
+  if(diag) {
+    lmpp = 0.0;
+  }
+  int clusterCnt = 0;
   
   // prepare to update b_gd
   b_gd(0) = alpha + 1.0*n;
@@ -69,6 +74,15 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
       Omega.slice(i) = tmp_omega;
       cholOmega.slice(i) = tmp_cholomega;
       Zeta.col(i) = tmp_zeta;
+      
+      if(diag) {
+        clusterCnt = clusterCnt + 1;
+        
+        double val;
+        double sign;
+        arma::log_det(val, sign, Psi_new);
+        lmpp = lmpp + lmvgamma(d, (nu_new*0.5)) + 0.5*d*log((lambda/lambda_new)) - 0.5*nu_new*val;
+      }
     }
     
     // update a_gd and b_gd
@@ -83,6 +97,21 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     }
   }
   
+  // compute log marginal partition posterior
+  if(diag) {
+    double val;
+    double sign;
+    arma::log_det(val, sign, Psi);
+    
+    lmpp = lmpp - clusterCnt*lmvgamma(d, (0.5*nu)) + 0.5*clusterCnt*nu*val + 
+      std::lgamma(b_gd(nclusters-2)) + std::lgamma(a_gd(nclusters-2));
+    
+    for(arma::uword i=0; i<(nclusters-2); i++) {
+      lmpp = lmpp - log(b_gd(i)) + std::lgamma(a_gd(i));
+    }
+    
+    lmpp = lmpp - 0.5*n*d*logpi + (nclusters-1.0)*log(alpha) - std::lgamma(n+alpha+1.0);
+  }
   
   // update w (weight)
   rGeneralizedDirichletArma(nclusters, a_gd, b_gd, lw);

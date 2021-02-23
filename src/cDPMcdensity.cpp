@@ -8,6 +8,7 @@ Rcpp::List cDPMcdensity (
     const arma::colvec & y,   // vector of length n
     const arma::mat & x,  // nx(d-1) matrix
     const bool status,
+    const bool diag,
     const bool pdf,
     const bool cdf,
     const bool meanReg,
@@ -58,6 +59,7 @@ Rcpp::List cDPMcdensity (
   arma::rowvec b_gd(nclusters-1, arma::fill::ones);
   arma::rowvec lw(nclusters);  // log(weight)
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
+  double lmpp;  // log marginal partition posterior
   
   arma::colvec grid(ngrid);
   if(grid_.isNotNull()) {
@@ -132,6 +134,7 @@ Rcpp::List cDPMcdensity (
   Rcpp::NumericMatrix mList(ndpost, d);
   Rcpp::NumericVector lambdaList(ndpost);
   Rcpp::List PsiList(ndpost);  // each is d x d
+  Rcpp::NumericVector lmpps(ndpost);
   
   Rcpp::List predcPDFs(ndpost);
   Rcpp::NumericMatrix predcPDFl(npred, ngrid);
@@ -157,7 +160,7 @@ Rcpp::List cDPMcdensity (
     if(i<nskip){
       // update (hyper)parameters
       drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
-                alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
+                alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         
       if(((i+1)%printevery) == 0)
         Rcpp::Rcout << " - MCMC scan " << i+1 << " of " << nmcmc << std::endl;
@@ -166,7 +169,7 @@ Rcpp::List cDPMcdensity (
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
         drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
-                  alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa);
+                  alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
           Rcpp::Rcout << " - MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
@@ -191,6 +194,9 @@ Rcpp::List cDPMcdensity (
           predcCDFs[i-nskip] = Rcpp::wrap(tmp_cdf);
         }
       }
+      
+      if(diag) 
+        lmpps[i-nskip] = lmpp;
       
       // keep the posterior sample
       ZetaList[i-nskip] = Rcpp::wrap(Zeta.t());   // nclustersxd mat
@@ -274,6 +280,8 @@ Rcpp::List cDPMcdensity (
     posterior["lambda"] = lambda;
     posterior["Psi"] = Rcpp::wrap(Psi);
   }
+  if(diag)
+    posterior["logMPPs"] = lmpps;
   res["posterior"] = posterior;
   
   if(meanReg) {

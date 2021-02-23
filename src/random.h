@@ -3,6 +3,17 @@
 
 #include "common.h"
 
+// return log multivariate gamma function
+static double lmvgamma(int d, double x) {
+  double result = (d * (d - 1) * 0.25) * logpi;
+  
+  for (int j=1; j<(d+1); j++) {
+    result = result + std::lgamma(x - ((j - 1.0) * 0.5));
+  }
+  
+  return result;
+}
+
 // return log(sum(exp(v)))
 static double log_sum_exp(arma::rowvec & v, const bool logd = true){
   double mx = v.max();
