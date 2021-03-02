@@ -67,6 +67,30 @@ static void credible_interval(arma::uword n, double alpha, arma::rowvec & x, arm
   upper(1) = hpd_upper;
 }
 
+// calculate quantiles from given cdfs and grids
+static void quantile_fun(arma::uword ngrid, arma::uword nprobs, const arma::colvec & probs, arma::rowvec & cdf, const arma::colvec & grid, arma::rowvec & evalqtls) {
+  
+  arma::uword current_idx = 0;
+  
+  for(arma::uword i=0; i<nprobs; i++) {
+    double prob = probs(i);
+    while (((current_idx + 1) < ngrid) && (cdf(current_idx + 1) <= prob)){
+      current_idx++;
+    }
+    
+    if (prob < cdf(0)){
+      evalqtls(i) = grid(0);
+    } else if (prob < cdf(current_idx + 1)){
+      //interpolation
+      evalqtls(i) = grid(current_idx) + (
+        grid(current_idx + 1) - grid(current_idx)) * (prob - cdf(current_idx)) / (cdf(current_idx + 1) - cdf(current_idx));
+    } else {
+      evalqtls(i) = grid(current_idx + 1);
+    }
+  }
+  
+}
+
 
 // Multivariate distributions
 

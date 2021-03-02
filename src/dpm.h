@@ -362,4 +362,160 @@ static void predict_conditional(arma::uword ngrid, arma::uword npred, arma::uwor
 }
 
 
+//------------------------------------------------------------------
+// calculate marginal density or cdf of y
+static void predict_marginal(arma::uword ngrid, arma::uword npred, arma::uword d, arma::uword nclusters, arma::uword nprobs, const arma::colvec & grid, const arma::mat & xpred, const arma::colvec & probs, arma::mat & Zeta, arma::cube & Omega, arma::rowvec & lw, bool pdf, bool cdf, const arma::rowvec & diri, arma::rowvec & evalpdf, arma::rowvec & evalcdf, arma::rowvec & evalqtls) {
+  
+  arma::mat evalcPDF(npred, ngrid);
+  arma::mat evalcCDF(npred, ngrid);
+  
+  if(d == 2) {
+    // x is univariate
+    
+    arma::mat xloglik(npred, nclusters);
+    arma::rowvec beta0(nclusters);
+    arma::rowvec beta(nclusters);
+    arma::rowvec sigma(nclusters);
+    
+    for(arma::uword i=0; i<nclusters; i++) {
+      arma::mat omega = Omega.slice(i);
+      arma::colvec zeta = Zeta.col(i);
+      
+      beta(i) = omega(0, 1) / omega(1, 1);
+      beta0(i) = zeta(0) - beta(i) * zeta(1);
+      sigma(i) = sqrt((omega(0, 0) - beta(i) * omega(1, 0)));
+      
+      double tmp = sqrt(omega(1, 1));
+      xloglik.col(i) = arma::log_normpdf(xpred, zeta(1), tmp);
+    }
+    
+    // log_sum_exp(lw+xloglik)
+    arma::colvec lwx_norm(npred);
+    for(arma::uword i=0; i<npred; i++) {
+      arma::rowvec tmp_vec = lw + xloglik.row(i);
+      lwx_norm(i) = log_sum_exp(tmp_vec, true);
+    }
+    
+    // mean and variance for the conditional kernels
+    arma::mat cmean = xpred * beta + arma::repmat(beta0, npred, 1);  // npred x nclusters
+    arma::mat csd = arma::repmat(sigma, npred, 1);  // npred x nclusters
+    
+    
+    // evalcPDF
+    if(pdf) {
+      for(arma::uword j=0; j<ngrid; j++) {
+        arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
+        
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcPDF(i, j) = exp(tmp - lwx_norm(i));
+        }
+        
+        evalpdf(j) = arma::as_scalar(diri * evalcPDF.col(j));
+      }
+    }
+    
+    // evalcCDF
+    if(cdf) {
+      for(arma::uword j=0; j<ngrid; j++) {
+        arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
+        glogcdf = log(glogcdf);
+        
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+        }
+        
+        evalcdf(j) = arma::as_scalar(diri * evalcCDF.col(j));
+      }
+      
+      // evalqtls
+      quantile_fun(ngrid, nprobs, probs, evalcdf, grid, evalqtls);
+    }
+    
+  } else {
+    // x is multivariate
+    
+    arma::mat xloglik(npred, nclusters);
+    arma::rowvec beta0(nclusters);
+    arma::mat beta((d-1), nclusters);
+    arma::rowvec sigma(nclusters);
+    
+    for(arma::uword i=0; i<nclusters; i++) {
+      double zeta1 = Zeta(0, i);
+      arma::colvec zeta2 = Zeta.submat(1, i, (d-1), i);
+      
+      arma::mat omega = Omega.slice(i);
+      arma::rowvec omega12 = omega.submat(0, 1, 0, (d-1));
+      arma::mat omega22 = omega.submat(1, 1, (d-1), (d-1));
+      arma::mat cholomega22 = arma::chol(omega22);
+      arma::mat rooti22((d-1), (d-1));
+      double others22;
+      
+      // xloglik
+      xloglik.col(i) = dMvnormArma(xpred, npred, (d-1), zeta2, cholomega22, rooti22, others22, true);
+      
+      // beta
+      arma::colvec tmp_vec = rooti22 * rooti22.t() * omega12.t();
+      beta.col(i) = tmp_vec;
+      
+      // beta0
+      beta0(i) = arma::as_scalar(zeta1 - tmp_vec.t() * zeta2);
+      
+      // sigma2
+      double tmp = omega(0, 0) - arma::as_scalar(omega12 * tmp_vec);
+      sigma(i) = sqrt(tmp);
+    }
+    
+    // log_sum_exp(lw+xloglik)
+    arma::colvec lwx_norm(npred);
+    for(arma::uword i=0; i<npred; i++) {
+      arma::rowvec tmp_vec = lw + xloglik.row(i);
+      lwx_norm(i) = log_sum_exp(tmp_vec, true);
+    }
+    
+    // mean and variance for the conditional kernels
+    arma::mat cmean = xpred * beta + arma::repmat(beta0, npred, 1);  // npred x nclusters
+    arma::mat csd = arma::repmat(sigma, npred, 1);  // npred x nclusters
+    
+    // evalcPDF
+    if(pdf) {
+      for(arma::uword j=0; j<ngrid; j++) {
+        arma::mat gloglik = arma::log_normpdf(grid(j), cmean, csd);
+        
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + gloglik.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcPDF(i, j) = exp(tmp - lwx_norm(i));
+        }
+        
+        evalpdf(j) = arma::as_scalar(diri * evalcPDF.col(j));
+      }
+    }
+    
+    // evalcCDF
+    if(cdf) {
+      for(arma::uword j=0; j<ngrid; j++) {
+        arma::mat glogcdf = arma::normcdf(grid(j), cmean, csd);
+        glogcdf = log(glogcdf);
+        
+        for(arma::uword i=0; i<npred; i++) {
+          arma::rowvec tmp_vec = lw + xloglik.row(i) + glogcdf.row(i);
+          double tmp = log_sum_exp(tmp_vec, true);
+          evalcCDF(i, j) = exp(tmp - lwx_norm(i));
+        }
+        
+        evalcdf(j) = arma::as_scalar(diri * evalcCDF.col(j));
+      }
+      
+      // evalqtls
+      quantile_fun(ngrid, nprobs, probs, evalcdf, grid, evalqtls);
+    }
+    
+  }
+  
+}
+
 #endif

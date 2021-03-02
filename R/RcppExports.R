@@ -9,15 +9,23 @@ cDPMdensity <- function(n, d, y, status, diag, prediction, ngrid, updateAlpha, u
     .Call(`_BNPqte_cDPMdensity`, n, d, y, status, diag, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid1_, grid2_)
 }
 
-cpDPMcdensity <- function(ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci) {
-    .Call(`_BNPqte_cpDPMcdensity`, ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci)
+cDPMmdensity <- function(n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs) {
+    .Call(`_BNPqte_cDPMmdensity`, n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs)
 }
 
-cpDPMdensity <- function(ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList) {
-    .Call(`_BNPqte_cpDPMdensity`, ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList)
+cpDPMcdensity <- function(ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci, printevery) {
+    .Call(`_BNPqte_cpDPMcdensity`, ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci, printevery)
 }
 
-timesTwo <- function(x, i) {
-    .Call(`_BNPqte_timesTwo`, x, i)
+cpDPMdensity <- function(ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList, printevery) {
+    .Call(`_BNPqte_cpDPMdensity`, ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList, printevery)
+}
+
+rdirichlet <- function(n, probs) {
+    .Call(`_BNPqte_rdirichlet`, n, probs)
+}
+
+credible_interval <- function(n, x, alphas, type) {
+    .Call(`_BNPqte_credible_interval`, n, x, alphas, type)
 }
 
