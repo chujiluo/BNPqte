@@ -6,9 +6,9 @@ DPMcdensity = function(y, x, nclusters=50L,
                        status=TRUE, state=NULL, diag=FALSE,
                        nskip=1000L, ndpost=1000L, keepevery=1L, printevery=1000L,
                        alpha=10.0, a0=10.0, b0=1.0, 
-                       m=colMeans(cbind(y, x)), m0=colMeans(cbind(y, x)), S0=NULL, 
+                       m=NULL, m0=NULL, S0=NULL, 
                        lambda=0.5, gamma1=3.0, gamma2=2.0, 
-                       nu=ncol(as.matrix(x))+3, Psi=NULL , nu0=ncol(as.matrix(x))+3, Psi0=NULL,
+                       nu=NULL, Psi=NULL , nu0=NULL, Psi0=NULL,
                        seed = 123
 ) {
   
@@ -142,13 +142,21 @@ DPMcdensity = function(y, x, nclusters=50L,
     ##-----------------------------
     ## Hyperpriors for the base distribution (Normal-Inverse-Wishart: N(zeta|m, Omega/lambda)xIW(Omega|nu, Psi))
     ##-----------------------------
-    if (nu < d) 
-      stop("nu is required to be a scalar greater than ncol(cbind(y, x))-1.")
+    if(is.null(nu)) {
+      nu = ncol(data) + 2
+    } else {
+      if (nu < d) 
+        stop("nu is required to be a scalar greater than ncol(cbind(y, x))-1.")
+    }
     
     if (useHyperpriors) {
       ### m ~ Normal(m0, S0)
-      if (!(is.vector(m0) & (length(m0) == d)))
-        stop("m0 is required to be a vector of length equal to ncol(cbind(y, x)).")
+      if(is.null(m0)) {
+        m0 = colMeans(data)
+      } else {
+        if (!(is.vector(m0) & (length(m0) == d)))
+          stop("m0 is required to be a vector of length equal to ncol(cbind(y, x)).")
+      }
       if (is.null(S0)) 
         S0 = diag(apply(data, 2, function(s) (range(s)[2]-range(s)[1])^2/16))
       m = NULL
@@ -160,19 +168,27 @@ DPMcdensity = function(y, x, nclusters=50L,
         stop("gamma1 and gamma2 are required to be positive scalars.")
       
       ### Psi ~ Wishart(nu0, Psi0)
-      if (nu0 < d)
-        stop("nu0 is required to be a scalar greater than ncol(cbind(y, x))-1.")
+      if(is.null(nu0)) {
+        nu0 = ncol(data) + 2
+      } else {
+        if (nu0 < d) 
+          stop("nu0 is required to be a scalar greater than ncol(cbind(y, x))-1.")
+      }
       if (is.null(Psi0))
         Psi0 = S0 / nu0
       Psi = NULL
       
     } else {
       ### m, lambda and Psi are fixed
-      if (is.vector(m) & (length(m) == d)) {
-        m0 = rep(-1, d)
-        S0 = diag(-1, d)
+      if(is.null(m)) {
+        m = colMeans(data)
       } else {
-        stop("m is required to be a vector of length equal to ncol(cbind(y, x)).")
+        if (is.vector(m) & (length(m) == d)) {
+          m0 = rep(-1, d)
+          S0 = diag(-1, d)
+        } else {
+          stop("m is required to be a vector of length equal to ncol(cbind(y, x)).")
+        }
       }
       
       if (lambda > 0) 
@@ -197,18 +213,20 @@ DPMcdensity = function(y, x, nclusters=50L,
   #---------------------------------------------- 
   ## print information
   #---------------------------------------------- 
-  cat("Fitting a Weight-Dependent DPM of Multivariate Normals using Blocked Gibbs Sampling...", "\n")
-  cat(" - Number of observations: ", n, "; Number of covariates: ", d-1, ".\n", sep = "")
+  cat("*****Into main of Weight-Dependent DPMM\n")
+  cat("*****Data: n, d: ", n, ", ", d, "\n", sep = "")
   if(any(pdf, cdf, meanReg))
-    cat(" - Prediction = TRUE; Prediction Type = ", paste(type.pred, collapse = ", "), "; ngrid of y = ", ngrid, "; ngrid of x = ", npred, ".\n", sep = "")
+    cat("*****Prediction: type, ngrid, nxpred: ", paste(type.pred, collapse = ", "), ", ", ngrid, ", ", npred, "\n", sep = "")
   else
-    cat(" - Prediction = FALSE.\n", sep = "")
+    cat("*****Prediction: FALSE\n")
+  cat("*****Number of clusters:", nclusters, "\n")
+  cat("*****Prior: updateAlpha, useHyperpriors: ", updateAlpha, ", ", useHyperpriors, "\n", sep="")
+  cat("*****MCMC: nskip, ndpost, keepevery, printevery: ", nskip, ", ", ndpost, ", ", keepevery, ", ", printevery, "\n", sep = "")
   if(status)
-    cat("Start a new analysis...", "\n", sep = "")
+    cat("*****Start a new MCMC...", "\n", sep = "")
   else
-    cat("Use previous analysis...", "\n", sep = "")
-  cat(" - Number of clusters: ", nclusters, "; updateAlpha = ", updateAlpha, "; useHyperpriors = ", useHyperpriors, ".\n", sep = "")
-  cat(" - Number of MCMC: ", nskip+ndpost*keepevery, ".\n", sep = "")
+    cat("*****Continue previous MCMC...", "\n", sep = "")
+  
   
   #----------------------------------------------
   # set random seed

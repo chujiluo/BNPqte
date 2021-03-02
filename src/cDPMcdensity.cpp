@@ -99,7 +99,6 @@ Rcpp::List cDPMcdensity (
   }
   
   
-  Rcpp::Rcout << "Initializing..." << std::endl;
   //------------------------------------------------------------------
   // initialize parameters
   if(!status) {
@@ -152,7 +151,6 @@ Rcpp::List cDPMcdensity (
   Rcpp::NumericVector predcMeanh(npred);
   
   
-  Rcpp::Rcout << "MCMC updating..." << std::endl;
   arma::uword nmcmc = nskip + ndpost*keepevery;
   //------------------------------------------------------------------
   // start mcmc
@@ -163,7 +161,7 @@ Rcpp::List cDPMcdensity (
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         
       if(((i+1)%printevery) == 0)
-        Rcpp::Rcout << " - MCMC scan " << i+1 << " of " << nmcmc << std::endl;
+        Rcpp::Rcout << "-------MCMC scan " << i+1 << " of " << nmcmc << std::endl;
       
     } else {
       // update (hyper)parameters
@@ -172,7 +170,7 @@ Rcpp::List cDPMcdensity (
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
-          Rcpp::Rcout << " - MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
+          Rcpp::Rcout << "-------MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
       }
       
       // prediction
@@ -224,7 +222,7 @@ Rcpp::List cDPMcdensity (
   }
   
   
-  Rcpp::Rcout << "Collecting returns..." << std::endl;
+  Rcpp::Rcout << "*****Collecting returns..." << std::endl;
   //------------------------------------------------------------------
   // keep current state
   Rcpp::List state;

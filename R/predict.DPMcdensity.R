@@ -1,5 +1,6 @@
 predict.DPMcdensity = function(object, xpred, grid, 
-                               type.pred=c("pdf"), compute.band=TRUE, type.band="HPD") {
+                               type.pred=c("pdf"), compute.band=TRUE, type.band="HPD",
+                               printevery=100L) {
   
   #---------------------------------------------- 
   # process arguments
@@ -53,6 +54,7 @@ predict.DPMcdensity = function(object, xpred, grid,
   #---------------------------------------------- 
   # call cpp function
   #---------------------------------------------- 
+  cat("Predicting ", sep = "")
   res = .Call("_BNPqte_cpDPMcdensity",
               ngrid,
               npred,
@@ -68,8 +70,10 @@ predict.DPMcdensity = function(object, xpred, grid,
               cdf,
               meanReg,
               hpd,
-              bci
+              bci,
+              printevery
   )
+  cat("Finished!\n")
   
   
   #---------------------------------------------- 

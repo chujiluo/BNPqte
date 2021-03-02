@@ -75,7 +75,6 @@ Rcpp::List cDPMdensity (
   arma::mat evalPDFm(ngrid, ngrid, arma::fill::zeros);
   
   
-  Rcpp::Rcout << "Initializing..." << std::endl;
   //------------------------------------------------------------------
   // initialize hyperparameters
   if(alpha < 0) {
@@ -139,7 +138,6 @@ Rcpp::List cDPMdensity (
   Rcpp::NumericMatrix predPDFm(ngrid, ngrid);
   
   
-  Rcpp::Rcout << "MCMC updating..." << std::endl;
   arma::uword nmcmc = nskip + ndpost*keepevery;
   //------------------------------------------------------------------
   // start mcmc
@@ -149,7 +147,7 @@ Rcpp::List cDPMdensity (
       drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
       if(((i+1)%printevery) == 0)
-        Rcpp::Rcout << " - MCMC scan " << i+1 << " of " << nmcmc << std::endl;
+        Rcpp::Rcout << "-------MCMC scan " << i+1 << " of " << nmcmc << std::endl;
       
     } else {
       // update (hyper)parameters
@@ -157,7 +155,7 @@ Rcpp::List cDPMdensity (
         drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
-          Rcpp::Rcout << " - MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
+          Rcpp::Rcout << "-------MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
       }
       
       // prediction
@@ -198,7 +196,7 @@ Rcpp::List cDPMdensity (
   }
   
 
-  Rcpp::Rcout << "Collecting returns..." << std::endl;
+  Rcpp::Rcout << "*****Collecting returns..." << std::endl;
   //------------------------------------------------------------------
   // keep current state
   Rcpp::List state;

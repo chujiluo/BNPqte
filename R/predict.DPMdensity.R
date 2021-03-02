@@ -1,4 +1,4 @@
-predict.DPMdensity = function(object, grid) {
+predict.DPMdensity = function(object, grid, printevery=100L) {
 
   #---------------------------------------------- 
   # process arguments
@@ -22,6 +22,7 @@ predict.DPMdensity = function(object, grid) {
   #---------------------------------------------- 
   # call cpp function
   #---------------------------------------------- 
+  cat("Predicting ", sep = "")
   res = .Call("_BNPqte_cpDPMdensity",
               ngrid,
               grid1,
@@ -31,9 +32,10 @@ predict.DPMdensity = function(object, grid) {
               ndpost,
               ZetaList,
               OmegaList,
-              lwList
+              lwList,
+              printevery
   )
-  
+  cat("Finished!\n")
   
   #---------------------------------------------- 
   # returns

@@ -16,7 +16,8 @@ Rcpp::List cpDPMcdensity(
     const bool cdf,
     const bool meanReg,
     const bool hpd,
-    const bool bci
+    const bool bci,
+    const arma::uword printevery
 ) {
   
   //------------------------------------------------------------------
@@ -74,8 +75,11 @@ Rcpp::List cpDPMcdensity(
       evalcCDFs.slice(i) = tmp_cdf;
       predcCDFs[i] = Rcpp::wrap(tmp_cdf);
     }
+    
+    if(((i+1)%printevery) == 0)
+      Rcpp::Rcout << ".";
   }
-  
+  Rcpp::Rcout << std::endl;
   
   //------------------------------------------------------------------
   // returns

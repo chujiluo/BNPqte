@@ -10,7 +10,8 @@ Rcpp::List cpDPMdensity(
     const arma::uword ndpost,
     const Rcpp::List & ZetaList,
     const Rcpp::List & OmegaList,
-    const arma::mat & lwList
+    const arma::mat & lwList,
+    const arma::uword printevery
 ) {
   
   //------------------------------------------------------------------
@@ -60,8 +61,11 @@ Rcpp::List cpDPMdensity(
     
     evalPDFm = evalPDFm + evalPDF;
     predPDFs[i] = Rcpp::wrap(evalPDF);
+    
+    if(((i+1)%printevery) == 0)
+      Rcpp::Rcout << ".";
   }
-  
+  Rcpp::Rcout << std::endl;
   
   //------------------------------------------------------------------
   // returns
