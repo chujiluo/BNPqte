@@ -29,3 +29,7 @@ credible_interval <- function(n, x, alphas, type) {
     .Call(`_BNPqte_credible_interval`, n, x, alphas, type)
 }
 
+quantile_fun <- function(ngrid, nprobs, ndpost, grid, probs, cdfs) {
+    .Call(`_BNPqte_quantile_fun`, ngrid, nprobs, ndpost, grid, probs, cdfs)
+}
+

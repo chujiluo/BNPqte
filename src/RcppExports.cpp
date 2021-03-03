@@ -214,6 +214,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// quantile_fun
+arma::mat quantile_fun(arma::uword ngrid, arma::uword nprobs, arma::uword ndpost, const arma::colvec& grid, const arma::colvec& probs, arma::mat& cdfs);
+RcppExport SEXP _BNPqte_quantile_fun(SEXP ngridSEXP, SEXP nprobsSEXP, SEXP ndpostSEXP, SEXP gridSEXP, SEXP probsSEXP, SEXP cdfsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::uword >::type ngrid(ngridSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type nprobs(nprobsSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type ndpost(ndpostSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type grid(gridSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type probs(probsSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type cdfs(cdfsSEXP);
+    rcpp_result_gen = Rcpp::wrap(quantile_fun(ngrid, nprobs, ndpost, grid, probs, cdfs));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_BNPqte_cDPMcdensity", (DL_FUNC) &_BNPqte_cDPMcdensity, 42},
@@ -223,6 +239,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BNPqte_cpDPMdensity", (DL_FUNC) &_BNPqte_cpDPMdensity, 10},
     {"_BNPqte_rdirichlet", (DL_FUNC) &_BNPqte_rdirichlet, 2},
     {"_BNPqte_credible_interval", (DL_FUNC) &_BNPqte_credible_interval, 4},
+    {"_BNPqte_quantile_fun", (DL_FUNC) &_BNPqte_quantile_fun, 6},
     {NULL, NULL, 0}
 };
 
