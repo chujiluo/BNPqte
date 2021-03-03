@@ -76,6 +76,7 @@ Rcpp::List cDPMmdensity (
     
     Psi0 = S0 / nu0;
     Psi = arma::wishrnd(Psi0, nu0);
+    
   } else {
     m = arma::mean(data, 0).t();
     
@@ -116,7 +117,8 @@ Rcpp::List cDPMmdensity (
         arma::rowvec tmp_cdf(ngrid);
         arma::rowvec tmp_quantile(nprobs);
         
-        predict_marginal(ngrid, npred, d, nclusters, nprobs, grid, xpred, probs, Zeta, Omega, lw, pdf, cdf, diri, tmp_pdf, tmp_cdf, tmp_quantile);
+        predict_marginal(ngrid, npred, d, nclusters, nprobs, grid, xpred, probs, Zeta, Omega, 
+                         lw, pdf, cdf, diri, tmp_pdf, tmp_cdf, tmp_quantile);
         
         if(pdf) {
           evalyPDFm = evalyPDFm + tmp_pdf;

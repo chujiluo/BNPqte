@@ -8,8 +8,10 @@
 //------------------------------------------------------------------
 // initialize parameters
 static void setparam(arma::uword n, arma::uword nclusters, arma::colvec & m, double lambda, int nu, arma::mat & Psi, double alpha, arma::cube & Omega, arma::cube & cholOmega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa){
+  
   // initialize Zeta, Omega and cholOmega
   arma::mat R = arma::chol(arma::inv(Psi));
+    
   rNormalInverseWishartArma(nclusters, m, lambda, nu, Psi, R, Omega, cholOmega, Zeta);
   
   // initialize lw
@@ -69,7 +71,7 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
       arma::mat tmp_cholomega(d, d);
       arma::colvec tmp_zeta(d);
       
-      rNormalInverseWishartArma(m_new, lambda_new, nu_new, Psi_new, tmp_omega, tmp_cholomega, tmp_zeta); 
+      rNormalInverseWishartArma(m_new, lambda_new, nu_new, Psi_new, tmp_omega, tmp_cholomega, tmp_zeta);
       
       Omega.slice(i) = tmp_omega;
       cholOmega.slice(i) = tmp_cholomega;
@@ -399,7 +401,6 @@ static void predict_marginal(arma::uword ngrid, arma::uword npred, arma::uword d
     // mean and variance for the conditional kernels
     arma::mat cmean = xpred * beta + arma::repmat(beta0, npred, 1);  // npred x nclusters
     arma::mat csd = arma::repmat(sigma, npred, 1);  // npred x nclusters
-    
     
     // evalcPDF
     if(pdf) {

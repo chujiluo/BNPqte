@@ -1,6 +1,6 @@
 qte = function(y, x, treatment,
                probs=c(0.1, 0.25, 0.50, 0.75, 0.90), 
-               compute.band=TRUE, type.band="HPD", alphas=c(0.95),
+               compute.band=TRUE, type.band="HPD", alphas=c(0.05),
                bart.link="probit", bart.params=list(split.prob="polynomial"), 
                dpm.params=list(),
                mc.cores=1L, seed = 123) {
@@ -257,14 +257,16 @@ qte = function(y, x, treatment,
   
   ## estimated propensity scores: bart.ndpost x n
   propensity = bart_obj$prob.train
-  propensity0 = propensity[, group0]
-  propensity1 = propensity[, group1]
+  propensity0 = propensity[, group0, drop = FALSE]
+  propensity1 = propensity[, group1, drop = FALSE]
   
   res$propensity = propensity
-  res$bart.parmas = list(link = bart.link, ntree = bart.ntree, nskip = bart.nskip, ndpost = bart.ndpost, keepevery = bart.keepevery,
+  res$bart.parmas = list(link = bart.link, ntree = bart.ntree, 
+                         nskip = bart.nskip, ndpost = bart.ndpost, keepevery = bart.keepevery,
                          split.prob = bart.split.prob, sparse = bart.sparse,
                          binaryOffset = bart_obj$binaryOffset, 
-                         vip = bart_obj$varcount.mean, varprob.mean = bart_obj$varprob.mean)
+                         vip = bart_obj$varcount.mean, 
+                         varprob.mean = bart_obj$varprob.mean)
   
   rm(bart_obj)
   gc()
@@ -316,6 +318,45 @@ qte = function(y, x, treatment,
     } else {
       dpm.grid = sort(as.vector(dpm.grid))
       dpm.ngrid = length(dpm.grid)
+    }
+  }
+  
+  if(is.null(dpm.params$xpred)) {
+    dpm.xpred = NULL
+  } else {
+    dpm.xpred = dpm.params$xpred
+  }
+  if(is.null(dpm.params$npred)) {
+    dpm.npred = 0
+  } else {
+    dpm.npred = dpm.params$npred
+  }
+  # as.matrix(propensity[i, ])
+  if(is.null(dpm.xpred) & (dpm.npred == 0)) {
+    dpm.xpred = propensity
+    dpm.npred = ncol(propensity)
+  } else {
+    if(is.null(dpm.xpred)) {
+      dpm.xpred = seq(from = (min(propensity) - 0.25 * sd(propensity)), 
+                      to = (max(propensity) + 0.25 * sd(propensity)), 
+                      length.out = dpm.npred)
+      dpm.xpred = t(replicate(bart.ndpost, dpm.xpred))
+    } else {
+      if((!is.vector(dpm.xpred)) | (!is.matrix(dpm.xpred))) {
+        stop("xpred in dpm.params is required to be a vector, matrix or NULL.")
+      } else {
+        if(is.vector(dpm.xpred)) {
+          dpm.npred = length(dpm.xpred)
+          dpm.xpred = t(replicate(bart.ndpost, dpm.xpred))
+        } else {
+          if(nrow(dpm.xpred) != bart.ndpost) {
+            stop("When xpred in dpm.params is provided as a matrix, 
+                 it is required to have the same number of rows as ndpost in bart.params.")
+          } else {
+            dpm.npred = ncol(dpm.xpred)
+          }
+        }
+      }
     }
   }
   
@@ -444,7 +485,7 @@ qte = function(y, x, treatment,
   ##---------------------------------------------------------------------------
   ## Bayesian Boostrap
   ##---------------------------------------------------------------------------
-  diri = .Call("_BNPqte_rdirichlet", bart.ndpost, rep(1.0, n))
+  diri = .Call("_BNPqte_rdirichlet", bart.ndpost, rep(1.0, dpm.npred))
   
   ##---------------------------------------------------------------------------
   ## print info. for DPMMs
@@ -456,14 +497,14 @@ qte = function(y, x, treatment,
   cat("*****Data: n0(control), n1(treatment): ", n0, ", ", n1, "\n", sep = "")
   if(dpm.cdf | dpm.pdf)
     cat("*****Prediction: type, ngrid, nxpred: ", 
-        paste(dpm.type.pred, collapse = ", "), ", ", dpm.ngrid, ", ", n, "\n", sep = "")
+        paste(dpm.type.pred, collapse = ", "), ", ", dpm.ngrid, ", ", dpm.npred, "\n", sep = "")
   else
     cat("*****Prediction: FALSE\n")
   cat("*****Number of clusters:", dpm.nclusters, "\n")
   cat("*****Prior: updateAlpha, useHyperpriors: ", dpm.updateAlpha, ", ", dpm.useHyperpriors, "\n", sep="")
   cat("*****MCMC: nskip, ndpost, keepevery: ", 
       dpm.nskip, ", ", dpm.ndpost, ", ", dpm.keepevery, "\n", sep = "")
-  cat("*****Number of DPMMs: ", bart.ndpost*2, "\n")
+  cat("*****Number of DPMMs:", bart.ndpost*2, "\n")
   
   ##---------------------------------------------------------------------------
   ## fitting DPMMs
@@ -481,8 +522,8 @@ qte = function(y, x, treatment,
                    dpm.cdf,
                    dpm.ngrid,
                    dpm.grid,
-                   n,
-                   as.matrix(propensity[i, ]),
+                   dpm.npred,
+                   as.matrix(dpm.xpred[i, ]),
                    dpm.updateAlpha,
                    dpm.useHyperpriors,
                    dpm.alpha,
@@ -512,8 +553,8 @@ qte = function(y, x, treatment,
                    dpm.cdf,
                    dpm.ngrid,
                    dpm.grid,
-                   n,
-                   as.matrix(propensity[i, ]),
+                   dpm.npred,
+                   as.matrix(dpm.xpred[i, ]),
                    dpm.updateAlpha,
                    dpm.useHyperpriors,
                    dpm.alpha,
@@ -563,17 +604,15 @@ qte = function(y, x, treatment,
   # returns
   #---------------------------------------------------------------------------------------------------- 
   res$grid = dpm.grid
-  
-  if(dpm.pdf) {
-    res$pdf.avg = rbind(colMeans(group0.pdfs), colMeans(group1.pdfs))  # 2 x dpm.ngrid
-    rownames(res$pdf.avg) = c("control", "treatment")
-    colnames(res$pdf.avg) = dpm.grid
-  }
+  res$xpred = dpm.xpred
+  res$type.pred = dpm.type.pred
   
   if(dpm.cdf) {
     res$probs = probs
     res$alphas = alphas
     res$compute.band = compute.band
+    if(compute.band)
+      res$type.band = type.band
      
     res$control.cdfs = group0.cdfs  # (bart.ndpost*dpm.ndpost) x dpm.ngrid
     res$treatment.cdfs = group1.cdfs
@@ -588,7 +627,6 @@ qte = function(y, x, treatment,
     names(res$qtes.avg) = paste(probs*100, "%", sep = "")
      
     if(compute.band) {
-      res$type.band = type.band
       lower.band = matrix(NA, nrow = nprobs, ncol = nalphas)
       upper.band = matrix(NA, nrow = nprobs, ncol = nalphas)
       
@@ -606,6 +644,12 @@ qte = function(y, x, treatment,
       colnames(res$upper.band) = alphas
     }
   }
+  
+  if(dpm.pdf) {
+    res$pdf.avg = rbind(colMeans(group0.pdfs), colMeans(group1.pdfs))  # 2 x dpm.ngrid
+    rownames(res$pdf.avg) = c("control", "treatment")
+    colnames(res$pdf.avg) = dpm.grid
+  }
    
   if(dpm.diag) {
     res$control.lmpps = group0.lmpps
@@ -619,8 +663,6 @@ qte = function(y, x, treatment,
   res$dpm.params = list(nclusters = dpm.nclusters, updateAlpha = dpm.updateAlpha, useHyperpriors = dpm.useHyperpriors,
                         nskip = dpm.nskip, ndpost = dpm.ndpost, keepevery = dpm.keepevery)
   
-   
-   
   attr(res, 'class') <- 'qte'
    
   print("Finished!")

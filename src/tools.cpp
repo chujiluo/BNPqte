@@ -19,7 +19,7 @@ arma::mat rdirichlet(arma::uword n, arma::colvec & probs) {
 }
 
 
-// calculate credible intervals of x
+// compute 100(1-alphas[i])% HPD or Bayesian credible intervals for a vector x, using Chen-Shao HPD estimation algorithm
 // [[Rcpp::export]]
 arma::mat credible_interval(arma::uword n, arma::colvec & x, arma::colvec & alphas, std::string type) {
   
@@ -69,4 +69,36 @@ arma::mat credible_interval(arma::uword n, arma::colvec & x, arma::colvec & alph
   }
   
   return band;
+}
+
+
+// calculate quantiles from given cdfs and grids
+// [[Rcpp::export]]
+arma::mat quantile_fun(arma::uword ngrid,  arma::uword nprobs, arma::uword ndpost, const arma::colvec & grid, const arma::colvec & probs, arma::mat & cdfs) {
+  
+  arma::mat quantiles(ndpost, nprobs);
+  
+  for(arma::uword ii=0; ii<ndpost; ii++) {
+    arma::uword current_idx = 0;
+    
+    for(arma::uword i=0; i<nprobs; i++) {
+      double prob = probs(i);
+      while (((current_idx + 1) < ngrid) && (cdfs(ii, current_idx + 1) <= prob)){
+        current_idx++;
+      }
+      
+      if (prob < cdfs(ii, 0)){
+        quantiles(ii, i) = grid(0);
+      } else if ((current_idx + 1) < ngrid){
+        //interpolation
+        quantiles(ii, i) = grid(current_idx) + (
+          grid(current_idx + 1) - grid(current_idx)) * (
+              prob - cdfs(ii, current_idx)) / (cdfs(ii, current_idx + 1) - cdfs(ii, current_idx));
+      } else {
+        quantiles(ii, i) = grid(current_idx);
+      }
+    }
+  }
+  
+  return quantiles;
 }

@@ -80,12 +80,12 @@ static void quantile_fun(arma::uword ngrid, arma::uword nprobs, const arma::colv
     
     if (prob < cdf(0)){
       evalqtls(i) = grid(0);
-    } else if (prob < cdf(current_idx + 1)){
+    } else if ((current_idx + 1) < ngrid){
       //interpolation
       evalqtls(i) = grid(current_idx) + (
         grid(current_idx + 1) - grid(current_idx)) * (prob - cdf(current_idx)) / (cdf(current_idx + 1) - cdf(current_idx));
     } else {
-      evalqtls(i) = grid(current_idx + 1);
+      evalqtls(i) = grid(current_idx);
     }
   }
   
@@ -103,7 +103,7 @@ static arma::colvec rMvnormArma(arma::colvec & mu, arma::mat & cholsigma) {
 
 // Generate a sample from a Normal-Inverse-Wishart distribution: N(Zeta.col(i) | m, Omega.slice(i)/lambda)xIW(Omega.slice(i) | nu, Psi)
 static void rNormalInverseWishartArma(arma::colvec & m, double lambda, int nu, arma::mat & Psi, arma::mat & omega, arma::mat & cholomega, arma::colvec & zeta){
-  omega = arma::iwishrnd(Psi, nu);
+  omega = arma::iwishrnd(arma::symmatu(Psi), nu);
   cholomega = arma::chol(omega);
   arma::mat tmp = cholomega / sqrt(lambda);
   zeta = rMvnormArma(m, tmp);
