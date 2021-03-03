@@ -467,8 +467,8 @@ qte = function(y, x, treatment,
   ## define returns from DPMM
   ##---------------------------------------------------------------------------
   if(dpm.pdf) {
-    group0.pdfs = matrix(NA, nrow = bart.ndpost, ncol = dpm.ngrid)
-    group1.pdfs = matrix(NA, nrow = bart.ndpost, ncol = dpm.ngrid)
+    group0.pdfs = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = dpm.ngrid)
+    group1.pdfs = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = dpm.ngrid)
   }
   if(dpm.cdf) {
     group0.cdfs = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = dpm.ngrid)
@@ -574,8 +574,8 @@ qte = function(y, x, treatment,
                    nprobs)
       
       if(dpm.pdf) {
-        group0.pdfs[i, ] = tmp0$predict.pdf.avg
-        group1.pdfs[i, ] = tmp1$predict.pdf.avg
+        group0.pdfs[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp0$predict.pdfs
+        group1.pdfs[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp0$predict.pdfs
       }
       if(dpm.cdf) {
         group0.cdfs[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp0$predict.cdfs
@@ -606,56 +606,173 @@ qte = function(y, x, treatment,
   res$grid = dpm.grid
   res$xpred = dpm.xpred
   res$type.pred = dpm.type.pred
+  res$compute.band = compute.band
+  if(compute.band) {
+    res$type.band = type.band
+    res$alphas = alphas
+  }
   
   if(dpm.cdf) {
     res$probs = probs
-    res$alphas = alphas
-    res$compute.band = compute.band
-    if(compute.band)
-      res$type.band = type.band
      
+    # cdfs
     res$control.cdfs = group0.cdfs  # (bart.ndpost*dpm.ndpost) x dpm.ngrid
     res$treatment.cdfs = group1.cdfs
     colnames(res$control.cdfs) = dpm.grid
     colnames(res$treatment.cdfs) = dpm.grid
      
-    res$quantiles.avg = cbind(colMeans(quantiles0), colMeans(quantiles1))  # nprobs x 2
-    colnames(res$quantiles.avg) = c("control", "treatment")
-    rownames(res$quantiles.avg) = paste(probs*100, "%", sep = "")
+    # quantiles
+    res$control.quantiles.avg = colMeans(quantiles0)
+    res$treatment.quantiles.avg = colMeans(quantiles1)
+    names(res$control.quantiles.avg) = paste(probs*100, "%", sep = "")
+    names(res$treatment.quantiles.avg) = paste(probs*100, "%", sep = "")
     
+    # quantile treatment effects
     res$qtes.avg = colMeans(qtes)  # nprobs
     names(res$qtes.avg) = paste(probs*100, "%", sep = "")
      
+    # credible intervals for quantiles and quantile treatment effects
     if(compute.band) {
-      lower.band = matrix(NA, nrow = nprobs, ncol = nalphas)
-      upper.band = matrix(NA, nrow = nprobs, ncol = nalphas)
-      
-      for (i in 1:nprobs) {
-        band = .Call(`_BNPqte_credible_interval`, nrow(qtes), qtes[, i], alphas, type.band)
-        lower.band[i, ] = band[1, ]
-        upper.band[i, ] = band[2, ]
+      if(nalphas == 1) {
+        control.quantiles.ci = matrix(NA, nrow = nprobs, ncol = 2)
+        for (i in 1:nprobs) {
+          band = .Call(`_BNPqte_credible_interval`, nrow(quantiles0), quantiles0[, i], alphas, type.band)
+          control.quantiles.ci[i, 1] = band[1, ]
+          control.quantiles.ci[i, 2] = band[2, ]
+        }
+        rownames(control.quantiles.ci) = paste(probs*100, "%", sep = "")
+        colnames(control.quantiles.ci) = c(alphas, 1-alphas)
+        res$control.quantiles.ci = control.quantiles.ci
+        
+        treatment.quantiles.ci = matrix(NA, nrow = nprobs, ncol = 2)
+        for (i in 1:nprobs) {
+          band = .Call(`_BNPqte_credible_interval`, nrow(quantiles1), quantiles1[, i], alphas, type.band)
+          treatment.quantiles.ci[i, 1] = band[1, ]
+          treatment.quantiles.ci[i, 2] = band[2, ]
+        }
+        rownames(treatment.quantiles.ci) = paste(probs*100, "%", sep = "")
+        colnames(treatment.quantiles.ci) = c(alphas, 1-alphas)
+        res$treatment.quantiles.ci = treatment.quantiles.ci
+        
+        qtes.ci = matrix(NA, nrow = nprobs, ncol = 2)
+        for (i in 1:nprobs) {
+          band = .Call(`_BNPqte_credible_interval`, nrow(qtes), qtes[, i], alphas, type.band)
+          qtes.ci[i, 1] = band[1, ]
+          qtes.ci[i, 2] = band[2, ]
+        }
+        rownames(qtes.ci) = paste(probs*100, "%", sep = "")
+        colnames(qtes.ci) = c(alphas, 1-alphas)
+        res$qtes.ci = qtes.ci
+      } else {
+        qtes.ci = list()
+        control.quantiles.ci = list()
+        treatment.quantiles.ci = list()
+        
+        for (i in 1:nalphas) {
+          qtes.ci[[i]] = matrix(NA, nrow = nprobs, ncol = 2)
+          control.quantiles.ci[[i]] = matrix(NA, nrow = nprobs, ncol = 2)
+          treatment.quantiles.ci[[i]] = matrix(NA, nrow = nprobs, ncol = 2)
+          
+          rownames(qtes.ci[[i]]) = paste(probs*100, "%", sep = "")
+          rownames(control.quantiles.ci[[i]]) = paste(probs*100, "%", sep = "")
+          rownames(treatment.quantiles.ci[[i]]) = paste(probs*100, "%", sep = "")
+          
+          colnames(qtes.ci[[i]]) = c(alphas[i], 1-alphas[i])
+          colnames(control.quantiles.ci[[i]]) = c(alphas[i], 1-alphas[i])
+          colnames(treatment.quantiles.ci[[i]]) = c(alphas[i], 1-alphas[i])
+        }
+        
+        for (i in 1:nprobs) {
+          band1 = .Call(`_BNPqte_credible_interval`, nrow(qtes), qtes[, i], alphas, type.band)
+          band2 = .Call(`_BNPqte_credible_interval`, nrow(quantiles0), quantiles0[, i], alphas, type.band)
+          band3 = .Call(`_BNPqte_credible_interval`, nrow(quantiles1), quantiles1[, i], alphas, type.band)
+          
+          for (j in 1:nalphas) {
+            qtes.ci[[j]][i, 1] = band1[1, j]
+            qtes.ci[[j]][i, 2] = band1[2, j]
+            
+            control.quantiles.ci[[j]][i, 1] = band2[1, j]
+            control.quantiles.ci[[j]][i, 2] = band2[2, j]
+            
+            treatment.quantiles.ci[[j]][i, 1] = band3[1, j]
+            treatment.quantiles.ci[[j]][i, 2] = band3[2, j]
+          }
+        }
+        
+        res$qtes.ci = qtes.ci
+        res$control.quantiles.ci = control.quantiles.ci
+        res$treatment.quantiles.ci = treatment.quantiles.ci
       }
-       
-      res$lower.band = lower.band
-      res$upper.band = upper.band
-      rownames(res$lower.band) = paste(probs*100, "%", sep = "")
-      rownames(res$upper.band) = paste(probs*100, "%", sep = "")
-      colnames(res$lower.band) = alphas
-      colnames(res$upper.band) = alphas
     }
   }
   
   if(dpm.pdf) {
-    res$pdf.avg = rbind(colMeans(group0.pdfs), colMeans(group1.pdfs))  # 2 x dpm.ngrid
-    rownames(res$pdf.avg) = c("control", "treatment")
-    colnames(res$pdf.avg) = dpm.grid
+    res$control.pdfs.avg = colMeans(group0.pdfs)
+    res$treatment.pdfs.avg = colMeans(group1.pdfs)
+    names(res$control.pdfs.avg) = dpm.grid
+    names(res$treatment.pdfs.avg) = dpm.grid
+    
+    if(compute.band) {
+      if(nalphas == 1) {
+        control.pdfs.ci = matrix(NA, nrow = dpm.ngrid, ncol = 2)
+        treatment.pdfs.ci = matrix(NA, nrow = dpm.ngrid, ncol = 2)
+        
+        for (i in 1:dpm.ngrid) {
+          band1 = .Call(`_BNPqte_credible_interval`, nrow(group0.pdfs), group0.pdfs[, i], alphas, type.band)
+          band2 = .Call(`_BNPqte_credible_interval`, nrow(group1.pdfs), group1.pdfs[, i], alphas, type.band)
+          
+          control.pdfs.ci[i, 1] = band1[1, ]
+          control.pdfs.ci[i, 2] = band1[2, ]
+          treatment.pdfs.ci[i, 1] = band2[1, ]
+          treatment.pdfs.ci[i, 2] = band2[2, ]
+        }
+        
+        rownames(control.pdfs.ci) = dpm.grid
+        colnames(control.pdfs.ci) = c(alphas, 1-alphas)
+        res$control.pdfs.ci = control.pdfs.ci
+        
+        rownames(treatment.pdfs.ci) = dpm.grid
+        colnames(treatment.pdfs.ci) = c(alphas, 1-alphas)
+        res$treatment.pdfs.ci = treatment.pdfs.ci
+      } else {
+        control.pdfs.ci = list()
+        treatment.pdfs.ci = list()
+        
+        for (i in 1:nalphas) {
+          control.pdfs.ci[[i]] = matrix(NA, nrow = dpm.ngrid, ncol = 2)
+          treatment.pdfs.ci[[i]] = matrix(NA, nrow = dpm.ngrid, ncol = 2)
+          
+          rownames(control.pdfs.ci[[i]]) = dpm.grid
+          rownames(treatment.pdfs.ci[[i]]) = dpm.grid
+          
+          colnames(control.pdfs.ci[[i]]) = c(alphas[i], 1-alphas[i])
+          colnames(treatment.pdfs.ci[[i]]) = c(alphas[i], 1-alphas[i])
+        }
+        
+        for (i in 1:dpm.ngrid) {
+          band1 = .Call(`_BNPqte_credible_interval`, nrow(group0.pdfs), group0.pdfs[, i], alphas, type.band)
+          band2 = .Call(`_BNPqte_credible_interval`, nrow(group1.pdfs), group1.pdfs[, i], alphas, type.band)
+          
+          for (j in 1:nalphas) {
+            control.pdfs.ci[[j]][i, 1] = band1[1, j]
+            control.pdfs.ci[[j]][i, 2] = band1[2, j]
+            
+            treatment.pdfs.ci[[j]][i, 1] = band2[1, j]
+            treatment.pdfs.ci[[j]][i, 2] = band2[2, j]
+          }
+        }
+        
+        res$control.pdfs.ci = control.pdfs.ci
+        res$treatment.pdfs.ci = treatment.pdfs.ci
+      }
+    }
   }
-   
+  
   if(dpm.diag) {
     res$control.lmpps = group0.lmpps
     res$treatment.lmpps = group1.lmpps
   }
-   
+  
   res$n0 = n0
   res$n1 = n1
   res$p = ncol(x)

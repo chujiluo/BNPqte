@@ -51,7 +51,7 @@ Rcpp::List cDPMmdensity (
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
   
   double lmpp;  // log marginal partition posterior
-  arma::rowvec evalyPDFm(ngrid, arma::fill::zeros);
+  arma::mat evalyPDFs(ndpost, ngrid);
   arma::mat evalyCDFs(ndpost, ngrid);
   arma::mat quantiles(ndpost, nprobs);
   
@@ -121,7 +121,7 @@ Rcpp::List cDPMmdensity (
                          lw, pdf, cdf, diri, tmp_pdf, tmp_cdf, tmp_quantile);
         
         if(pdf) {
-          evalyPDFm = evalyPDFm + tmp_pdf;
+          evalyPDFs.row(i-nskip) = tmp_pdf;
         }
         if(cdf) {
           evalyCDFs.row(i-nskip) = tmp_cdf;
@@ -142,7 +142,7 @@ Rcpp::List cDPMmdensity (
     res["logMPPs"] = lmpps;
   
   if(pdf) {
-    res["predict.pdf.avg"] = Rcpp::wrap(evalyPDFm / ndpost);
+    res["predict.pdfs"] = Rcpp::wrap(evalyPDFs);
   }
   
   if(cdf) {

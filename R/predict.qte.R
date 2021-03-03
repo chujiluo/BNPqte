@@ -45,19 +45,75 @@ predict.qte = function(object, probs,
   qtes = quantiles1 - quantiles0
   
   if(compute.band) {
-    lower.band = matrix(NA, nrow = nprobs, ncol = nalphas)
-    upper.band = matrix(NA, nrow = nprobs, ncol = nalphas)
-    
-    for (i in 1:nprobs) {
-      band = .Call(`_BNPqte_credible_interval`, nrow(qtes), qtes[, i], alphas, type.band)
-      lower.band[i, ] = band[1, ]
-      upper.band[i, ] = band[2, ]
+    if(nalphas == 1) {
+      control.quantiles.ci = matrix(NA, nrow = nprobs, ncol = 2)
+      for (i in 1:nprobs) {
+        band = .Call(`_BNPqte_credible_interval`, nrow(quantiles0), quantiles0[, i], alphas, type.band)
+        control.quantiles.ci[i, 1] = band[1, ]
+        control.quantiles.ci[i, 2] = band[2, ]
+      }
+      rownames(control.quantiles.ci) = paste(probs*100, "%", sep = "")
+      colnames(control.quantiles.ci) = c(alphas, 1-alphas)
+      
+      treatment.quantiles.ci = matrix(NA, nrow = nprobs, ncol = 2)
+      for (i in 1:nprobs) {
+        band = .Call(`_BNPqte_credible_interval`, nrow(quantiles1), quantiles1[, i], alphas, type.band)
+        treatment.quantiles.ci[i, 1] = band[1, ]
+        treatment.quantiles.ci[i, 2] = band[2, ]
+      }
+      rownames(treatment.quantiles.ci) = paste(probs*100, "%", sep = "")
+      colnames(treatment.quantiles.ci) = c(alphas, 1-alphas)
+      
+      qtes.ci = matrix(NA, nrow = nprobs, ncol = 2)
+      for (i in 1:nprobs) {
+        band = .Call(`_BNPqte_credible_interval`, nrow(qtes), qtes[, i], alphas, type.band)
+        qtes.ci[i, 1] = band[1, ]
+        qtes.ci[i, 2] = band[2, ]
+      }
+      rownames(qtes.ci) = paste(probs*100, "%", sep = "")
+      colnames(qtes.ci) = c(alphas, 1-alphas)
+    } else {
+      qtes.ci = list()
+      control.quantiles.ci = list()
+      treatment.quantiles.ci = list()
+      
+      for (i in 1:nalphas) {
+        qtes.ci[[i]] = matrix(NA, nrow = nprobs, ncol = 2)
+        control.quantiles.ci[[i]] = matrix(NA, nrow = nprobs, ncol = 2)
+        treatment.quantiles.ci[[i]] = matrix(NA, nrow = nprobs, ncol = 2)
+        
+        rownames(qtes.ci[[i]]) = paste(probs*100, "%", sep = "")
+        rownames(control.quantiles.ci[[i]]) = paste(probs*100, "%", sep = "")
+        rownames(treatment.quantiles.ci[[i]]) = paste(probs*100, "%", sep = "")
+        
+        colnames(qtes.ci[[i]]) = c(alphas[i], 1-alphas[i])
+        colnames(control.quantiles.ci[[i]]) = c(alphas[i], 1-alphas[i])
+        colnames(treatment.quantiles.ci[[i]]) = c(alphas[i], 1-alphas[i])
+      }
+      
+      for (i in 1:nprobs) {
+        band1 = .Call(`_BNPqte_credible_interval`, nrow(qtes), qtes[, i], alphas, type.band)
+        band2 = .Call(`_BNPqte_credible_interval`, nrow(quantiles0), quantiles0[, i], alphas, type.band)
+        band3 = .Call(`_BNPqte_credible_interval`, nrow(quantiles1), quantiles1[, i], alphas, type.band)
+        
+        for (j in 1:nalphas) {
+          qtes.ci[[j]][i, 1] = band1[1, j]
+          qtes.ci[[j]][i, 2] = band1[2, j]
+          
+          control.quantiles.ci[[j]][i, 1] = band2[1, j]
+          control.quantiles.ci[[j]][i, 2] = band2[2, j]
+          
+          treatment.quantiles.ci[[j]][i, 1] = band3[1, j]
+          treatment.quantiles.ci[[j]][i, 2] = band3[2, j]
+        }
+      }
     }
   }
   
   
   # returns
   res = list()
+  res$type.pred = "cdf"
   res$probs = probs
   res$compute.band = compute.band
   if(compute.band) {
@@ -67,11 +123,13 @@ predict.qte = function(object, probs,
   
   res$control.quantiles = quantiles0
   res$treatment.quantiles = quantiles1
-  res$quantiles.avg = cbind(colMeans(quantiles0), colMeans(quantiles1))
   colnames(res$control.quantiles) = paste(probs*100, "%", sep = "")
   colnames(res$treatment.quantiles) = paste(probs*100, "%", sep = "")
-  colnames(res$quantiles.avg) = c("control", "treatment")
-  rownames(res$quantiles.avg) = paste(probs*100, "%", sep = "")
+  
+  res$control.quantiles.avg = colMeans(quantiles0)
+  res$treatment.quantiles.avg = colMeans(quantiles1)
+  names(res$control.quantiles.avg) = paste(probs*100, "%", sep = "")
+  names(res$treatment.quantiles.avg) = paste(probs*100, "%", sep = "")
   
   res$qtes = qtes
   res$qtes.avg = colMeans(qtes)
@@ -79,12 +137,9 @@ predict.qte = function(object, probs,
   names(res$qtes.avg) = paste(probs*100, "%", sep = "")
   
   if(compute.band) {
-    res$lower.band = lower.band
-    res$upper.band = upper.band
-    rownames(res$lower.band) = paste(probs*100, "%", sep = "")
-    rownames(res$upper.band) = paste(probs*100, "%", sep = "")
-    colnames(res$lower.band) = alphas
-    colnames(res$upper.band) = alphas
+    res$qtes.ci = qtes.ci
+    res$control.quantiles.ci = control.quantiles.ci
+    res$treatment.quantiles.ci = treatment.quantiles.ci
   }
   
   attr(res, 'class') <- 'qte'
