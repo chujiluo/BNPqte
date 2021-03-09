@@ -1,0 +1,230 @@
+lbart = function(x.train, y.train, x.test=matrix(0.0,0,0),
+                 sparse=FALSE, a=0.5, b=1, augment=FALSE, rho=NULL,
+                 xinfo=matrix(0.0,0,0), numcut=100L, 
+                 usequants=FALSE, cont=FALSE, rm.const=TRUE, 
+                 grp = NULL, xnames = NULL, categorical_idx = NULL,
+                 tau.interval=0.95, k=2.0, power=2.0, base=.95,
+                 binaryOffset=NULL, 
+                 ntree=200L, 
+                 ndpost=1000L, nskip=1000L, keepevery=1L,
+                 nkeeptrain=ndpost, nkeeptest=ndpost,
+                 nkeeptreedraws=ndpost, printevery=100, transposed=FALSE) {
+  
+  #--------------------------------------------------
+  #data
+  n = length(y.train)
+
+  if(length(binaryOffset)==0) binaryOffset=qlogis(mean(y.train))
+  
+  if(!transposed) {
+    if(is.null(dim(x.train))) {
+      xnames = "X"
+    } else {
+      xnames = dimnames(x.train)[[2]]  # predictor names before dummification
+    }
+    
+    temp = bartModelMatrix(x.train, numcut, usequants=usequants,
+                           cont=cont, xinfo=xinfo, rm.const=rm.const)
+    
+    x.train = t(temp$X)
+    numcut = temp$numcut
+    xinfo = temp$xinfo
+    if(length(x.test)>0) {
+      x.test = bartModelMatrix(x.test)
+      x.test = t(x.test[ , temp$rm.const])
+    }
+    rm.const <- temp$rm.const
+    grp <- temp$grp
+    rm(temp)
+    
+    p0 = length(unique(grp))  # number of predictors before dummification
+    categorical_idx = unique(grp)[which(sapply(unique(grp), function(s) sum(s==grp)) > 1)]  # indices of categorical predictors in the original design matrix
+    
+    if(length(rm.const)==0) rm.const <- 1:p
+    if(length(grp)==0) grp <- 1:p
+  } else {
+    if(any(length(rm.const)==0, length(grp)==0, length(xnames)==0))
+      stop('Did not provide rm.const, grp and xnames for x.train after transpose!')
+    if(is.logical(rm.const))
+      stop('Did not provide rm.const for x.train after transpose!')
+    if((length(grp) > length(unique(grp))) & (length(categorical_idx) <= 0))
+      stop('Did not provide categorical_idx for x.train that contains categorical predictors!')
+    
+    p0 = length(unique(grp))
+  }
+  
+  if(n!=ncol(x.train))
+    stop('The length of y.train and the number of rows in x.train must be identical')
+  
+  p = nrow(x.train)
+  np = ncol(x.test)
+  if(length(rho)==0) rho <- p
+  
+  if(tau.interval>0.5) tau.interval = 1 - tau.interval
+  
+  tau = qlogis(1 - 0.5*tau.interval) / (k*sqrt(ntree))
+  
+  #--------------------------------------------------
+  #set nkeeps for thinning
+  if((nkeeptrain!=0) & ((ndpost %% nkeeptrain) != 0)) {
+    nkeeptrain=ndpost
+    cat('*****nkeeptrain set to ndpost\n')
+  }
+  if((nkeeptest!=0) & ((ndpost %% nkeeptest) != 0)) {
+    nkeeptest=ndpost
+    cat('*****nkeeptest set to ndpost\n')
+  }
+  if((nkeeptreedraws!=0) & ((ndpost %% nkeeptreedraws) != 0)) {
+    nkeeptreedraws=ndpost
+    cat('*****nkeeptreedraws set to ndpost\n')
+  }
+  
+  #--------------------------------------------------
+  #call
+  res = .Call("clbart",
+              n,  #number of observations in training data
+              p,  #dimension of x
+              np, #number of observations in test data
+              x.train,   #p*n training data x
+              as.integer(2*y.train-1),   #n*1 training data y
+              x.test,    #p*np test data x
+              ntree,
+              numcut,
+              ndpost*keepevery,
+              nskip,
+              power,
+              base,
+              binaryOffset,
+              tau,
+              sparse,
+              a,
+              b,
+              rho,
+              augment,
+              nkeeptrain,
+              nkeeptest,
+              nkeeptreedraws,
+              printevery,
+              xinfo
+  )
+  
+  #---------------------------------------------------------
+  #returns
+  if(nkeeptrain>0) {
+    res$yhat.train = res$yhat.train+binaryOffset
+    res$prob.train = plogis(res$yhat.train)
+    res$prob.train.mean <- apply(res$prob.train, 2, mean)
+  } else {
+    res$yhat.train <- NULL
+  }
+  
+  if(np>0) {
+    res$yhat.test = res$yhat.test+binaryOffset
+    res$prob.test = plogis(res$yhat.test)
+    res$prob.test.mean <- apply(res$prob.test, 2, mean)
+  } else {
+    res$yhat.test <- NULL
+  }
+  
+  if(nkeeptreedraws>0)
+    names(res$treedraws$cutpoints) = dimnames(x.train)[[1]]
+  
+  #--------------------------------------------------
+  #importance
+  if(length(grp) == length(unique(grp))) {
+    ## no dummy variables
+    dimnames(res$varcount)[[2]] = as.list(dimnames(x.train)[[1]])
+    dimnames(res$varprob)[[2]] = as.list(dimnames(x.train)[[1]])
+    
+    ## vip
+    res$vip = colMeans(t(apply(res$varcount, 1, function(s) s/sum(s))))
+    
+    ## (marginal) posterior variable inclusion probability
+    res$pvip = colMeans(res$varcount > 0)
+    
+    ## posterior s_j's (in DART)
+    res$varprob.mean <- colMeans(res$varprob)
+    
+    ## mi
+    mr_vecs = lapply(res$mr_vecs, function(s) lapply(s, function(v) v[-1]))  # remove the meaningless first 0
+    res$mr_vecs = mr_vecs
+    mrmean = matrix(unlist(lapply(mr_vecs, function(s) lapply(s, function(v) ifelse(length(v)>0, mean(v), 0.0)))), 
+                    ncol = p, byrow = TRUE)
+    res$mrmean = mrmean
+    res$mi = colMeans(t(apply(mrmean, 1, function(s) s/sum(s))))
+    names(res$mi) = as.list(dimnames(x.train)[[1]])
+    dimnames(res$mrmean)[[2]] = as.list(xnames)
+  } else {
+    ## merge importance scores for dummy variables
+    varcount = matrix(NA, nrow = nkeeptreedraws, ncol = p0)
+    varprob = matrix(NA, nrow = nkeeptreedraws, ncol = p0)
+    
+    mr_vecs = lapply(res$mr_vecs, function(s) list(s[[1]][-1]))
+    varcount[, 1] = res$varcount[, 1]
+    varprob[, 1] = res$varprob[, 1]
+    
+    j = 1
+    for (l in 2:p) {
+      if (grp[l] == grp[l-1]) {
+        varcount[, j] = varcount[, j] + res$varcount[, l]
+        varprob[, j] = varprob[, j] + res$varprob[, l]
+        for (i in 1:nkeeptreedraws) {
+          mr_vecs[[i]][[j]] = c(mr_vecs[[i]][[j]], res$mr_vecs[[i]][[l]][-1])
+        }
+      } else {
+        j = j + 1
+        varcount[, j] = res$varcount[, l]
+        varprob[, j] = res$varprob[, l]
+        for (i in 1:nkeeptreedraws) {
+          mr_vecs[[i]][[j]] = res$mr_vecs[[i]][[l]][-1]
+        }
+      }
+    }
+    
+    dimnames(varcount)[[2]] = as.list(xnames)
+    dimnames(varprob)[[2]] = as.list(xnames)
+    
+    res$varcount = varcount
+    res$varprob = varprob
+    res$mr_vecs = mr_vecs
+    
+    ## vip
+    res$vip = colMeans(t(apply(varcount, 1, function(s) s/sum(s))))
+    
+    ## within-type vip
+    within_type_vip = rep(0, p0)
+    for (i in 1:nkeeptreedraws) {
+      if (sum(varcount[i, categorical_idx]) != 0) {
+        within_type_vip[categorical_idx] = within_type_vip[categorical_idx] + 
+          varcount[i, categorical_idx]/sum(varcount[i, categorical_idx])
+      }
+      if (sum(varcount[i, -categorical_idx]) != 0) {
+        within_type_vip[-categorical_idx] = within_type_vip[-categorical_idx] + 
+          varcount[i, -categorical_idx]/sum(varcount[i, -categorical_idx])
+      }
+    }
+    res$within_type_vip = within_type_vip / nkeeptreedraws
+    names(res$within_type_vip) = xnames
+    
+    ## (marginal) posterior variable inclusion probability
+    res$pvip = colMeans(varcount > 0)
+    
+    ## posterior s_j's (in DART)
+    res$varprob.mean <- colMeans(varprob)
+    
+    ## mi
+    mrmean = matrix(unlist(lapply(mr_vecs, function(s) lapply(s, function(v) ifelse(length(v)>0, mean(v), 0.0)))), 
+                    ncol = p0, byrow = TRUE)
+    res$mrmean = mrmean
+    res$mi = colMeans(t(apply(mrmean, 1, function(s) s/sum(s))))
+    dimnames(res$mrmean)[[2]] = as.list(xnames)
+    names(res$mi) = as.list(xnames)
+  }
+  
+  res$binaryOffset=binaryOffset
+  res$rm.const <- rm.const
+  
+  attr(res, 'class') <- 'lbart'
+  
+  return(res)
+}
