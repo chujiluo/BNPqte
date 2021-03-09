@@ -599,10 +599,13 @@ qte = function(y, x, treatment,
     print("Will be added soon.")
   }
   
+  cat("DPMM Finished!\n")
    
   #---------------------------------------------------------------------------------------------------- 
   # returns
   #---------------------------------------------------------------------------------------------------- 
+  cat("Collecting returns ...")
+  
   res$grid = dpm.grid
   res$xpred = dpm.xpred
   res$type.pred = dpm.type.pred
@@ -782,7 +785,7 @@ qte = function(y, x, treatment,
   
   attr(res, 'class') <- 'qte'
    
-  print("Finished!")
+  cat("Finished!\n")
    
   return(res)
   
