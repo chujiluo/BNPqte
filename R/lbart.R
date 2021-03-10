@@ -3,7 +3,7 @@ lbart = function(x.train, y.train, x.test=matrix(0.0,0,0),
                  xinfo=matrix(0.0,0,0), numcut=100L, 
                  usequants=FALSE, cont=FALSE, rm.const=TRUE, 
                  grp = NULL, xnames = NULL, categorical_idx = NULL,
-                 tau.interval=0.95, k=2.0, power=2.0, base=.95,
+                 tau.interval=0.95, k=2.0, power=2.0, base=-1.0, split.prob = "polynomial",
                  binaryOffset=NULL, 
                  ntree=200L, 
                  ndpost=1000L, nskip=1000L, keepevery=1L,
@@ -59,6 +59,20 @@ lbart = function(x.train, y.train, x.test=matrix(0.0,0,0),
   p = nrow(x.train)
   np = ncol(x.test)
   if(length(rho)==0) rho <- p
+  
+  if(!(split.prob %in% c("polynomial", "exponential"))) {
+    stop("split.prob is either polynomial or exponential.")
+  } else {
+    if(split.prob == "polynomial") {
+      if(base < 0)
+        base = 0.95
+    }
+    if(split.prob == "exponential") {
+      power = -1.0
+      if(base < 0)
+        base = 0.25
+    }
+  }
   
   if(tau.interval>0.5) tau.interval = 1 - tau.interval
   

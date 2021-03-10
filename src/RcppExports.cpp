@@ -233,6 +233,7 @@ END_RCPP
 
 RcppExport SEXP clbart(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP cpbart(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP cwbart(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP mc_cores_openmp();
 
 static const R_CallMethodDef CallEntries[] = {
@@ -246,6 +247,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BNPqte_quantile_fun", (DL_FUNC) &_BNPqte_quantile_fun, 6},
     {"clbart",                    (DL_FUNC) &clbart,                    24},
     {"cpbart",                    (DL_FUNC) &cpbart,                    27},
+    {"cwbart",                    (DL_FUNC) &cwbart,                    31},
     {"mc_cores_openmp",           (DL_FUNC) &mc_cores_openmp,            0},
     {NULL, NULL, 0}
 };

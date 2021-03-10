@@ -86,7 +86,10 @@ double lh(size_t n, double sy, double sigma, double tau)
 double pgrow(tree::tree_p n, xinfo& xi, pinfo& pi)
 {
   if(cansplit(n,xi)) {
-    return pi.alpha/pow(1.0+n->depth(),pi.mybeta);
+    if(pi.mybeta > 0) 
+      return pi.alpha/pow(1.0+n->depth(), pi.mybeta);
+    else
+      return pow(pi.alpha, (n->depth())*1.0);
   } else {
     return 0.0;
   }
@@ -228,22 +231,35 @@ void bprop(tree& x, xinfo& xi, pinfo& pi, tree::npv& goodbots, double& PBx, tree
   //nx: split node; v: split var; c: split val
   double Pbotx = 1.0/goodbots.size(); //proposal prob of choosing nx
   size_t dnx = nx->depth();
-  double PGnx = pi.alpha/pow(1.0 + dnx,pi.mybeta); //prior prob of growing at nx
+  double PGnx;
+  if(pi.mybeta > 0)
+    PGnx = pi.alpha / pow(1.0 + dnx, pi.mybeta); //prior prob of growing at nx
+  else
+    PGnx = pow(pi.alpha, dnx*1.0);   // prior from Rockova & Saha
   
   double PGly, PGry; //prior probs of growing at new children (l and r) of proposal
   if(goodvars.size()>1) { //know there are variables we could split l and r on
-    PGly = pi.alpha/pow(1.0 + dnx+1.0,pi.mybeta); //depth of new nodes would be one more
+    if(pi.mybeta > 0)
+      PGly = pi.alpha/pow(1.0 + dnx + 1.0, pi.mybeta); //depth of new nodes would be one more
+    else
+      PGly = pow(pi.alpha, dnx + 1.0);
     PGry = PGly;
   } else { //only had v to work with, if it is exhausted at either child need PG=0
     if((int)(c-1)<L) { //v exhausted in new left child l, new upper limit would be c-1
       PGly = 0.0;
     } else {
-      PGly = pi.alpha/pow(1.0 + dnx+1.0,pi.mybeta);
+      if(pi.mybeta > 0)
+        PGly = pi.alpha/pow(1.0 + dnx + 1.0, pi.mybeta);
+      else
+        PGly = pow(pi.alpha, dnx + 1.0);
     }
     if(U < (int)(c+1)) { //v exhausted in new right child r, new lower limit would be c+1
       PGry = 0.0;
     } else {
-      PGry = pi.alpha/pow(1.0 + dnx+1.0,pi.mybeta);
+      if(pi.mybeta > 0)
+        PGry = pi.alpha/pow(1.0 + dnx + 1.0, pi.mybeta);
+      else
+        PGry = pow(pi.alpha, dnx + 1.0);
     }
   }
   
@@ -288,7 +304,10 @@ void dprop(tree& x, xinfo& xi, pinfo& pi,tree::npv& goodbots, double& PBx, tree:
   
   double PGny; //prob the nog node grows
   size_t dny = nx->depth();
-  PGny = pi.alpha/pow(1.0+dny,pi.mybeta);
+  if(pi.mybeta > 0)
+    PGny = pi.alpha/pow(1.0 + dny, pi.mybeta);
+  else
+    PGny = pow(pi.alpha, dny*1.0);
   
   //better way to code these two?
   double PGlx = pgrow(nx->getl(),xi,pi);

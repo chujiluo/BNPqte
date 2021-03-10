@@ -78,8 +78,8 @@ RcppExport SEXP cpbart(
   size_t nkeeptreedraws = Rcpp::as<int>(_inkeeptreedraws);
   size_t printevery = Rcpp::as<int>(_inprintevery);
   Rcpp::NumericMatrix Xinfo(_Xinfo);
-  
-  
+    
+    
   //return data structures (using Rcpp)
   Rcpp::NumericMatrix trdraw(nkeeptrain,n);
   Rcpp::NumericMatrix tedraw(nkeeptest,np);
@@ -132,7 +132,10 @@ RcppExport SEXP cpbart(
   Rcpp::Rcout << "*****Data: " << "n, p, np: " << n << ", " << p << ", " << np << std::endl;
   printf("*****BinaryOffset: %lf\n",binaryOffset);
   printf("*****Number of Trees: %zu\n",m);
-  printf("*****Prior: mybeta, alpha, tau: %lf,%lf,%lf\n", mybeta, alpha, tau);
+  if(mybeta > 0)
+    Rcpp::Rcout << "*****Prior: split.prob, mybeta, alpha, tau: polynomial, " << mybeta << ", " << alpha << ", " << tau << std::endl;
+  else
+    Rcpp::Rcout << "*****Prior: split.prob, alpha, tau: exponential, " << alpha << ", " << tau << std::endl;
   Rcpp::Rcout << "*****Dirichlet: sparse, theta, omega, a, b, rho, augment: " 
               << dart << ", " << theta << ", " << omega << ", " << a << ", "
               << b << ", " << rho << ", " << aug << std::endl;
@@ -145,6 +148,7 @@ RcppExport SEXP cpbart(
   bm.setprior(alpha,mybeta,tau);
   bm.setdata(p,n,ix,iz,numcut);
   bm.setdart(a,b,rho,aug,dart,theta,omega);
+  
   //--------------------------------------------------
   //initialize the latent z's
   for(size_t k=0; k<n; k++) {
