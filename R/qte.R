@@ -1,9 +1,131 @@
+# convenient function for parallel computing in qte()
+multiple_dpm = function(n0, n1, d, y0, y1, propensity0, propensity1, 
+                        diag, pdf, cdf, ngrid, grid, npred, xpred,
+                        updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, 
+                        nclusters, nskip, ndpost, keepevery, 
+                        diri, probs, nprobs) {
+  
+  res = list()
+  
+  if(is.matrix(propensity0)) {
+    for(i in 1:nrow(propensity0)) {
+      tmp0 = .Call("_BNPqte_cDPMmdensity",
+                   n0, d, cbind(y0, propensity0[i, ]), y0, as.matrix(propensity0[i, ]),
+                   diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred[i, ]),
+                   updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, 
+                   nclusters, nskip, ndpost, keepevery,
+                   diri[i, ], probs, nprobs)
+      
+      tmp1 = .Call("_BNPqte_cDPMmdensity",
+                   n1, d, cbind(y1, propensity1[i, ]), y1, as.matrix(propensity1[i, ]),
+                   diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred[i, ]),
+                   updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu,
+                   nclusters, nskip, ndpost, keepevery,
+                   diri[i, ], probs, nprobs)
+      
+      if(i == 1) {
+        if(pdf) {
+          group0.pdfs = tmp0$predict.pdfs
+          group1.pdfs = tmp1$predict.pdfs
+        }
+        if(cdf) {
+          group0.cdfs = tmp0$predict.cdfs
+          group1.cdfs = tmp1$predict.cdfs
+          quantiles0 = tmp0$predict.quantiles
+          quantiles1 = tmp1$predict.quantiles
+          qtes = tmp1$predict.quantiles - tmp0$predict.quantiles
+        }
+        if(diag) {
+          group0.lmpps = tmp0$logMPPs
+          group1.lmpps = tmp1$logMPPs
+        }
+      } else {
+        if(pdf) {
+          group0.pdfs = rbind(group0.pdfs, tmp0$predict.pdfs)
+          group1.pdfs = rbind(group1.pdfs, tmp1$predict.pdfs)
+        }
+        if(cdf) {
+          group0.cdfs = rbind(group0.cdfs, tmp0$predict.cdfs)
+          group1.cdfs = rbind(group1.cdfs, tmp1$predict.cdfs)
+          quantiles0 = rbind(quantiles0, tmp0$predict.quantiles)
+          quantiles1 = rbind(quantiles1, tmp1$predict.quantiles)
+          qtes = rbind(qtes, tmp1$predict.quantiles - tmp0$predict.quantiles)
+        }
+        if(diag) {
+          group0.lmpps = rbind(group0.lmpps, tmp0$logMPPs)
+          group1.lmpps = rbind(group1.lmpps, tmp1$logMPPs)
+        }
+      }
+      
+      
+      rm(tmp0)
+      rm(tmp1)
+      gc()
+    }
+    
+    if(pdf) {
+      res$group0.pdfs = group0.pdfs
+      res$group1.pdfs = group1.pdfs
+    }
+    if(cdf) {
+      res$group0.cdfs = group0.cdfs
+      res$group1.cdfs = group1.cdfs
+      res$quantiles0 = quantiles0
+      res$quantiles1 = quantiles1
+      res$qtes = qtes
+    }
+    if(diag) {
+      res$group0.lmpps = group0.lmpps
+      res$group1.lmpps = group1.lmpps
+    }
+  } else {
+    ## only one row in propensity0, propensity1, xpred and diri
+    tmp0 = .Call("_BNPqte_cDPMmdensity",
+                 n0, d, cbind(y0, propensity0), y0, as.matrix(propensity0),
+                 diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred),
+                 updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, 
+                 nclusters, nskip, ndpost, keepevery,
+                 diri, probs, nprobs)
+    
+    tmp1 = .Call("_BNPqte_cDPMmdensity",
+                 n1, d, cbind(y1, propensity1), y1, as.matrix(propensity1),
+                 diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred),
+                 updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu,
+                 nclusters, nskip, ndpost, keepevery,
+                 diri, probs, nprobs)
+    
+    if(pdf) {
+      res$group0.pdfs = tmp0$predict.pdfs
+      res$group1.pdfs = tmp1$predict.pdfs
+    }
+    if(cdf) {
+      res$group0.cdfs = tmp0$predict.cdfs
+      res$group1.cdfs = tmp1$predict.cdfs
+      res$quantiles0 = tmp0$predict.quantiles
+      res$quantiles1 = tmp1$predict.quantiles
+      res$qtes = tmp1$predict.quantiles - tmp0$predict.quantiles
+    }
+    if(diag) {
+      res$group0.lmpps = tmp0$logMPPs
+      res$group1.lmpps = tmp1$logMPPs
+    }
+    
+    rm(tmp0)
+    rm(tmp1)
+    gc()
+  }
+  
+  return(res)
+}
+
+
+# estimate quantile causal effects
 qte = function(y, x, treatment,
                probs=c(0.1, 0.25, 0.50, 0.75, 0.90), 
                compute.band=TRUE, type.band="HPD", alphas=c(0.05),
                bart.link="probit", bart.params=list(split.prob="polynomial"), 
                dpm.params=list(),
-               mc.cores=1L, seed = 123) {
+               mc.cores=1L, nice = 19L, seed = 123) {
   
   res = list()
   
@@ -216,6 +338,7 @@ qte = function(y, x, treatment,
   #---------------------------------------------------------------------------------------------------- 
   # set seed
   #---------------------------------------------------------------------------------------------------- 
+  RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
 
   
@@ -466,24 +589,6 @@ qte = function(y, x, treatment,
   }
   
   
-  ##---------------------------------------------------------------------------
-  ## define returns from DPMM
-  ##---------------------------------------------------------------------------
-  if(dpm.pdf) {
-    group0.pdfs = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = dpm.ngrid)
-    group1.pdfs = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = dpm.ngrid)
-  }
-  if(dpm.cdf) {
-    group0.cdfs = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = dpm.ngrid)
-    group1.cdfs = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = dpm.ngrid)
-    quantiles0 = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = nprobs)
-    quantiles1 = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = nprobs)
-    qtes = matrix(NA, nrow = (bart.ndpost*dpm.ndpost), ncol = nprobs)
-  }
-  if(dpm.diag) {
-    group0.lmpps = matrix(NA, nrow = bart.ndpost, ncol = dpm.ndpost)
-    group1.lmpps = matrix(NA, nrow = bart.ndpost, ncol = dpm.ndpost)
-  }
   
   ##---------------------------------------------------------------------------
   ## Bayesian Boostrap
@@ -577,19 +682,37 @@ qte = function(y, x, treatment,
                    nprobs)
       
       if(dpm.pdf) {
-        group0.pdfs[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp0$predict.pdfs
-        group1.pdfs[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp0$predict.pdfs
+        if(i == 1) {
+          group0.pdfs = tmp0$predict.pdfs
+          group1.pdfs = tmp1$predict.pdfs
+        } else {
+          group0.pdfs = rbind(group0.pdfs, tmp0$predict.pdfs)
+          group1.pdfs = rbind(group1.pdfs, tmp1$predict.pdfs)
+        }
       }
       if(dpm.cdf) {
-        group0.cdfs[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp0$predict.cdfs
-        group1.cdfs[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp1$predict.cdfs
-        quantiles0[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp0$predict.quantiles
-        quantiles1[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp1$predict.quantiles
-        qtes[((i-1)*dpm.ndpost+1):(i*dpm.ndpost), ] = tmp1$predict.quantiles - tmp0$predict.quantiles
+        if(i == 1) {
+          group0.cdfs = tmp0$predict.cdfs
+          group1.cdfs = tmp1$predict.cdfs
+          quantiles0 = tmp0$predict.quantiles
+          quantiles1 = tmp1$predict.quantiles
+          qtes = tmp1$predict.quantiles - tmp0$predict.quantiles
+        } else {
+          group0.cdfs = rbind(group0.cdfs, tmp0$predict.cdfs)
+          group1.cdfs = rbind(group1.cdfs, tmp1$predict.cdfs)
+          quantiles0 = rbind(quantiles0, tmp0$predict.quantiles)
+          quantiles1 = rbind(quantiles1, tmp1$predict.quantiles)
+          qtes = rbind(qtes, tmp1$predict.quantiles - tmp0$predict.quantiles)
+        }
       }
       if(dpm.diag) {
-        group0.lmpps[i, ] = tmp0$logMPPs
-        group1.lmpps[i, ] = tmp1$logMPPs
+        if(i == 1) {
+          group0.lmpps = tmp0$logMPPs
+          group1.lmpps = tmp1$logMPPs
+        } else {
+          group0.lmpps = rbind(group0.lmpps, tmp0$logMPPs)
+          group1.lmpps = rbind(group1.lmpps, tmp1$logMPPs)
+        }
       }
       
       rm(tmp0)
@@ -598,8 +721,79 @@ qte = function(y, x, treatment,
       cat("-------DPMM fit", 2*i, "out of", 2*bart.ndpost, "\n")
     }
   } else {
-    ## parallel computing
-    print("Will be added soon.")
+    
+    if(.Platform$OS.type!='unix')
+      stop('parallel::mcparallel/mccollect do not exist on windows')
+    
+    parallel::mc.reset.stream()
+    
+    mc.cores.detected = detectCores()
+    if(mc.cores > mc.cores.detected) 
+      mc.cores = mc.cores.detected
+    
+    mc.bart.ndpost = floor(bart.ndpost / mc.cores)
+    
+    cat("-------Fit DPMMs in parallel with", mc.cores, "cores...\n")
+    
+    ### parallel computing
+    for (i in 1:mc.cores) {
+      if (i <= bart.ndpost %% mc.cores){
+        start_row = (i - 1) * (mc.bart.ndpost + 1) + 1
+        end_row = i * (mc.bart.ndpost + 1)
+      }
+      else{
+        start_row = (i - 1) * mc.bart.ndpost + 1 + bart.ndpost %% mc.cores
+        end_row = i * mc.bart.ndpost + bart.ndpost %% mc.cores
+      }
+      
+      parallel::mcparallel({psnice(value=nice);
+        multiple_dpm(n0, n1, d, y0, y1, propensity0[start_row:end_row, ], propensity1[start_row:end_row, ], 
+                     dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
+                     dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2, dpm.nu0, dpm.nu, 
+                     dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, 
+                     diri[start_row:end_row, ], probs, nprobs)},
+        silent=(i!=1))
+    }
+    
+    ### collect parallel results
+    parallel.list <- parallel::mccollect()
+    
+    if(dpm.pdf) {
+      group0.pdfs = parallel.list[[1]]$group0.pdfs
+      group1.pdfs = parallel.list[[1]]$group1.pdfs
+    }
+    if(dpm.cdf) {
+      group0.cdfs = parallel.list[[1]]$group0.cdfs
+      group1.cdfs = parallel.list[[1]]$group1.cdfs
+      quantiles0 = parallel.list[[1]]$quantiles0
+      quantiles1 = parallel.list[[1]]$quantiles1
+      qtes = parallel.list[[1]]$qtes
+    }
+    if(dpm.diag) {
+      group0.lmpps = parallel.list[[1]]$group0.lmpps
+      group1.lmpps = parallel.list[[1]]$group1.lmpps
+    }
+    
+    for(i in 2:mc.cores) {
+      if(dpm.pdf) {
+        group0.pdfs = rbind(group0.pdfs, parallel.list[[i]]$group0.pdfs)
+        group1.pdfs = rbind(group1.pdfs, parallel.list[[i]]$group1.pdfs)
+      }
+      if(dpm.cdf) {
+        group0.cdfs = rbind(group0.cdfs, parallel.list[[i]]$group0.cdfs)
+        group1.cdfs = rbind(group1.cdfs, parallel.list[[i]]$group1.cdfs)
+        quantiles0 = rbind(quantiles0, parallel.list[[i]]$quantiles0)
+        quantiles1 = rbind(quantiles1, parallel.list[[i]]$quantiles1)
+        qtes = rbind(qtes, parallel.list[[i]]$qtes)
+      }
+      if(dpm.diag) {
+        group0.lmpps = rbind(group0.lmpps, parallel.list[[i]]$group0.lmpps)
+        group1.lmpps = rbind(group1.lmpps, parallel.list[[i]]$group1.lmpps)
+      }
+    }
+    
+    rm(parallel.list)
+    gc()
   }
   
   cat("DPMM Finished!\n")
