@@ -35,36 +35,11 @@ Rcpp::List cDPMdensityNeal (
     Rcpp::Nullable<Rcpp::NumericVector> grid2_ = R_NilValue  //vector of length ngrid
 ) {
   //------------------------------------------------------------------
-  // initialize hyperparameters
+  // initialize parameters and clusters
   arma::mat invS0 = arma::inv_sympd(S0);
   arma::colvec invS0m0 = invS0 * m0;
   arma::mat invPsi0 = arma::inv_sympd(Psi0);
   
-  // if(alpha < 0) {
-  //   alpha = 1.0;
-  // }
-  // if(lambda < 0) {
-  //   lambda = arma::randg<double>(arma::distr_param(gamma1, (1.0/gamma2)));
-  // }
-  // arma::colvec m(d);
-  // if(m_.isNull()) {
-  //   arma::colvec tmp = arma::randn<arma::colvec>(d);
-  //   m = m0 + 100.0 * tmp;
-  // } else {
-  //   Rcpp::NumericVector rcppm(m_);
-  //   m = Rcpp::as<arma::colvec>(rcppm);
-  // }
-  // arma::mat Psi(d, d);
-  // if(Psi_.isNull()) {
-  //   Psi = nu0 * Psi0;
-  // } else {
-  //   Rcpp::NumericMatrix rcppPsi(Psi_);
-  //   Psi = Rcpp::as<arma::mat>(rcppPsi);
-  // }
-  // 
-  
-  //------------------------------------------------------------------
-  // initialize parameters and clusters
   arma::mat Zeta(d, n+2); // cluster-wise: column
   arma::cube Omega(d, d, n+2); // cluster-wise: slice
   arma::cube cholOmega(d, d, n+2); // cholOmega.slice(i) = arma::chol(Omega.slice(i))
