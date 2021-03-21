@@ -156,7 +156,7 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
       arma::mat tmp_mat = icholOmega.slice(i) * icholOmega.slice(i).t();
       arma::colvec tmp_vec = tmp_mat * Zeta.col(i);
       double tmp = arma::as_scalar(tmp_vec.t() * Zeta.col(i));
-
+      
       sumInvOmega = sumInvOmega + tmp_mat;
       sumInvOmegaZeta = sumInvOmegaZeta + tmp_vec;
       sumZetaInvOmegaZeta = sumZetaInvOmegaZeta + tmp;

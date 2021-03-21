@@ -180,10 +180,13 @@ DPMdensity = function(y,
       
     }
     
-    Omega = Zeta = kappa = NULL   # will initialize in cpp function
+    if(method == "truncated") {
+      a_gd = rep(1.0, (nclusters-1))
+      b_gd = rep(alpha, (nclusters-1))
+      lw = NULL
+    }
     
-    if(method == "truncated")
-      lw = a_gd = b_gd = NULL
+    Omega = Zeta = kappa = NULL   # will initialize in cpp function
   }
   
   
@@ -249,10 +252,10 @@ DPMdensity = function(y,
                 lambda,
                 m,
                 Psi,
-                Zeta,
-                Omega,
                 a_gd,
                 b_gd,
+                Zeta,
+                Omega,
                 lw,
                 kappa,
                 grid1,

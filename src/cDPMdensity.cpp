@@ -25,35 +25,55 @@ Rcpp::List cDPMdensity (
     const arma::uword ndpost,
     const arma::uword keepevery,
     const arma::uword printevery,
-    double alpha,
-    double lambda,
-    Rcpp::Nullable<Rcpp::NumericVector> m_ = R_NilValue,  // vector of length d
-    Rcpp::Nullable<Rcpp::NumericMatrix> Psi_ = R_NilValue,  // dxd matrix
+    double & alpha,
+    double & lambda,
+    arma::colvec & m,
+    arma::mat & Psi,
+    arma::rowvec & a_gd,
+    arma::rowvec & b_gd,
     Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_ = R_NilValue,
     Rcpp::Nullable<Rcpp::List> Omega_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> a_gd_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> b_gd_ = R_NilValue,
     Rcpp::Nullable<Rcpp::NumericVector> lw_ = R_NilValue,
     Rcpp::Nullable<Rcpp::IntegerVector> kappa_ = R_NilValue,
     Rcpp::Nullable<Rcpp::NumericVector> grid1_ = R_NilValue,  //vector of length ngrid
     Rcpp::Nullable<Rcpp::NumericVector> grid2_ = R_NilValue  //vector of length ngrid
 ) {
-  
   //------------------------------------------------------------------
-  // process args
-  arma::colvec m(d);
-  arma::mat Psi(d, d);
+  // initialize parameters and clusters
+  arma::mat invS0 = arma::inv_sympd(S0);
+  arma::colvec invS0m0 = invS0 * m0;
+  arma::mat invPsi0 = arma::inv_sympd(Psi0);
+  
   arma::mat Zeta(d, nclusters); // each column is of length d
   arma::cube Omega(d, d, nclusters); // each slice is dxd
   arma::cube cholOmega(d, d, nclusters); // cholOmega.slice(i) = arma::chol(Omega.slice(i))
   arma::cube icholOmega(d, d, nclusters); // icholOmega.slice(i) = arma::inv(cholOmega.slice(i))
   arma::colvec othersOmega(nclusters); // terms excluding data in the log pdf of Normal(Zeta.col(i), Omega.slice(i))
-  arma::rowvec a_gd(nclusters-1, arma::fill::ones);
-  arma::rowvec b_gd(nclusters-1, arma::fill::ones);
   arma::rowvec lw(nclusters);  // log(weight)
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
+  
   double lmpp;  // log marginal partition posterior
   
+  if(!status) {
+    Rcpp::NumericMatrix rcppZeta(Zeta_);
+    Zeta = Rcpp::as<arma::mat>(rcppZeta);
+    Rcpp::List rcppOmega(Omega_);
+    for(arma::uword i=0; i<nclusters; i++) {
+      arma::mat tmp1 = Rcpp::as<arma::mat>(rcppOmega[i]);
+      Omega.slice(i) = tmp1;
+      cholOmega.slice(i) = arma::chol(tmp1);
+    }
+    Rcpp::NumericVector rcpplw(lw_);
+    lw = Rcpp::as<arma::rowvec>(rcpplw);
+    Rcpp::IntegerVector rcppkappa(kappa_);
+    kappa = Rcpp::as<arma::uvec>(rcppkappa);
+  } else {
+    setparam(n, nclusters, m, lambda, nu, Psi, alpha, Omega, cholOmega, Zeta, lw, a_gd, b_gd, kappa);
+  }
+  
+  
+  //------------------------------------------------------------------
+  // process prediction args
   arma::colvec grid1(ngrid);
   arma::colvec grid2(ngrid);
   arma::mat ypred(ngrid*ngrid, d);  // arma::mat in column major order
@@ -74,54 +94,7 @@ Rcpp::List cDPMdensity (
   arma::mat evalPDF(ngrid, ngrid);
   arma::mat evalPDFm(ngrid, ngrid, arma::fill::zeros);
   
-  
-  //------------------------------------------------------------------
-  // initialize hyperparameters
-  if(alpha < 0) {
-    alpha = arma::randg<double>(arma::distr_param(a0, (1.0/b0)));
-  }
-  b_gd = b_gd * alpha;
-  if(lambda < 0) {
-    lambda = arma::randg<double>(arma::distr_param(gamma1, (1.0/gamma2)));
-  }
-  if(m_.isNull()) {
-    m = arma::mvnrnd(m0, S0);
-  } else {
-    Rcpp::NumericVector rcppm(m_);
-    m = Rcpp::as<arma::colvec>(rcppm);
-  }
-  if(Psi_.isNull()) {
-    Psi = arma::wishrnd(Psi0, nu0);
-  } else {
-    Rcpp::NumericMatrix rcppPsi(Psi_);
-    Psi = Rcpp::as<arma::mat>(rcppPsi);
-  }
-  
-  
-  //------------------------------------------------------------------
-  // initialize parameters
-  if(!status) {
-    Rcpp::NumericMatrix rcppZeta(Zeta_);
-    Zeta = Rcpp::as<arma::mat>(rcppZeta);
-    Rcpp::List rcppOmega(Omega_);
-    for(arma::uword i=0; i<nclusters; i++) {
-      arma::mat tmp1 = Rcpp::as<arma::mat>(rcppOmega[i]);
-      Omega.slice(i) = tmp1;
-      cholOmega.slice(i) = arma::chol(tmp1);
-    }
-    Rcpp::NumericVector rcppa_gd(a_gd_);
-    a_gd = Rcpp::as<arma::rowvec>(rcppa_gd);
-    Rcpp::NumericVector rcppb_gd(b_gd_);
-    b_gd = Rcpp::as<arma::rowvec>(rcppb_gd);
-    Rcpp::NumericVector rcpplw(lw_);
-    lw = Rcpp::as<arma::rowvec>(rcpplw);
-    Rcpp::IntegerVector rcppkappa(kappa_);
-    kappa = Rcpp::as<arma::uvec>(rcppkappa);
-  } else {
-    setparam(n, nclusters, m, lambda, nu, Psi, alpha, Omega, cholOmega, Zeta, lw, a_gd, b_gd, kappa);
-  }
-  
-  
+
   //------------------------------------------------------------------
   // return data structures
   Rcpp::List OmegaList(ndpost);  // each is a list of nclusters elements with each element is a dxd mat
@@ -138,9 +111,10 @@ Rcpp::List cDPMdensity (
   Rcpp::NumericMatrix predPDFm(ngrid, ngrid);
   
   
-  arma::uword nmcmc = nskip + ndpost*keepevery;
   //------------------------------------------------------------------
   // start mcmc
+  arma::uword nmcmc = nskip + ndpost*keepevery;
+  
   for(arma::uword i=0; i<(nskip+ndpost); i++){
     if(i<nskip){
       // update (hyper)parameters
@@ -200,6 +174,8 @@ Rcpp::List cDPMdensity (
   //------------------------------------------------------------------
   // keep current state
   Rcpp::List state;
+  state["method"] = "truncated";
+  
   state["updateAlpha"] = updateAlpha;
   state["useHyperpriors"] = useHyperpriors;
   state["nclusters"] = nclusters;
@@ -228,6 +204,7 @@ Rcpp::List cDPMdensity (
   // return
   Rcpp::List res;
   
+  res["method"] = "truncated";
   res["updateAlpha"] = updateAlpha;
   res["useHyperpriors"] = useHyperpriors;
   res["status"] = status;
