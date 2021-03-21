@@ -25,6 +25,10 @@ cpDPMdensity <- function(ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, Om
     .Call(`_BNPqte_cpDPMdensity`, ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList, printevery)
 }
 
+cpDPMdensityNeal <- function(ngrid, grid1, grid2, d, n, updateAlpha, useHyperpriors, ZetaList, OmegaList, kappaList, nclusterList, alphaList, lambdaList, mList, PsiList, nu, ndpost, printevery) {
+    .Call(`_BNPqte_cpDPMdensityNeal`, ngrid, grid1, grid2, d, n, updateAlpha, useHyperpriors, ZetaList, OmegaList, kappaList, nclusterList, alphaList, lambdaList, mList, PsiList, nu, ndpost, printevery)
+}
+
 rnorm_cpp <- function(s, N) {
     .Call(`_BNPqte_rnorm_cpp`, s, N)
 }

@@ -143,18 +143,24 @@ Rcpp::List cDPMdensityNeal (
       
       // keep the posterior sample
       nclusterList[i-nskip] = nclusters;
-      ZetaList[i-nskip] = Rcpp::wrap(Zeta.t());   // nclustersxd mat
+      
+      arma::mat tmpZeta = Zeta.cols(0, (nclusters-1)).t();
+      ZetaList[i-nskip] = Rcpp::wrap(tmpZeta);   // nclustersxd mat
+      
       Rcpp::List tmpOmega(nclusters);
       for(arma::uword j=0; j<nclusters; j++){
         tmpOmega[j] = Rcpp::wrap(Omega.slice(j));  // dxd mat
       }
       OmegaList[i-nskip] = tmpOmega;
+      
       for(arma::uword j=0; j<n; j++){
         kappaList(i-nskip, j) = kappa(j);
       }
+      
       if(updateAlpha){
         alphaList[i-nskip] = alpha;
       }
+      
       if(useHyperpriors){
         for(arma::uword j=0; j<d; j++){
           mList(i-nskip, j) = m(j);

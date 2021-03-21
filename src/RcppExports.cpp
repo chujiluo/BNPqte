@@ -229,6 +229,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpDPMdensityNeal
+Rcpp::List cpDPMdensityNeal(const arma::uword ngrid, const arma::colvec& grid1, const arma::colvec& grid2, const arma::uword d, const arma::uword n, const bool updateAlpha, const bool useHyperpriors, const Rcpp::List& ZetaList, const Rcpp::List& OmegaList, const arma::mat& kappaList, const arma::colvec& nclusterList, const arma::colvec& alphaList, const arma::colvec& lambdaList, const arma::mat& mList, const Rcpp::List& PsiList, const int nu, const arma::uword ndpost, const arma::uword printevery);
+RcppExport SEXP _BNPqte_cpDPMdensityNeal(SEXP ngridSEXP, SEXP grid1SEXP, SEXP grid2SEXP, SEXP dSEXP, SEXP nSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP ZetaListSEXP, SEXP OmegaListSEXP, SEXP kappaListSEXP, SEXP nclusterListSEXP, SEXP alphaListSEXP, SEXP lambdaListSEXP, SEXP mListSEXP, SEXP PsiListSEXP, SEXP nuSEXP, SEXP ndpostSEXP, SEXP printeverySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::uword >::type ngrid(ngridSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type grid1(grid1SEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type grid2(grid2SEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const bool >::type updateAlpha(updateAlphaSEXP);
+    Rcpp::traits::input_parameter< const bool >::type useHyperpriors(useHyperpriorsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type ZetaList(ZetaListSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type OmegaList(OmegaListSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type kappaList(kappaListSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type nclusterList(nclusterListSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type alphaList(alphaListSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type lambdaList(lambdaListSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type mList(mListSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type PsiList(PsiListSEXP);
+    Rcpp::traits::input_parameter< const int >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type ndpost(ndpostSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type printevery(printeverySEXP);
+    rcpp_result_gen = Rcpp::wrap(cpDPMdensityNeal(ngrid, grid1, grid2, d, n, updateAlpha, useHyperpriors, ZetaList, OmegaList, kappaList, nclusterList, alphaList, lambdaList, mList, PsiList, nu, ndpost, printevery));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rnorm_cpp
 Rcpp::List rnorm_cpp(double s, int N);
 RcppExport SEXP _BNPqte_rnorm_cpp(SEXP sSEXP, SEXP NSEXP) {
@@ -331,6 +359,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BNPqte_cDPMmdensity", (DL_FUNC) &_BNPqte_cDPMmdensity, 29},
     {"_BNPqte_cpDPMcdensity", (DL_FUNC) &_BNPqte_cpDPMcdensity, 16},
     {"_BNPqte_cpDPMdensity", (DL_FUNC) &_BNPqte_cpDPMdensity, 10},
+    {"_BNPqte_cpDPMdensityNeal", (DL_FUNC) &_BNPqte_cpDPMdensityNeal, 18},
     {"_BNPqte_rnorm_cpp", (DL_FUNC) &_BNPqte_rnorm_cpp, 2},
     {"_BNPqte_simdisc", (DL_FUNC) &_BNPqte_simdisc, 4},
     {"_BNPqte_test", (DL_FUNC) &_BNPqte_test, 3},
