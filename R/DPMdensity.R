@@ -1,12 +1,14 @@
-DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
-                      updateAlpha=TRUE,
-                      useHyperpriors=TRUE,
-                      status=TRUE, state=NULL, diag=FALSE,
+DPMdensity = function(y, 
+                      ngrid=1000L, grid=NULL, 
+                      method="truncated", nclusters=50L,
+                      updateAlpha=TRUE, useHyperpriors=TRUE,
+                      status=TRUE, state=NULL, 
                       nskip=1000L, ndpost=1000L, keepevery=1L, printevery=1000L,
                       alpha=10.0, a0=10.0, b0=1.0, 
-                      m=colMeans(y), m0=colMeans(y), S0=NULL, 
+                      m=NULL, m0=NULL, S0=NULL, 
                       lambda=0.5, gamma1=3.0, gamma2=2.0, 
-                      nu=ncol(y)+2, Psi=NULL , nu0=ncol(y)+2, Psi0=NULL,
+                      nu=NULL, Psi=NULL , nu0=NULL, Psi0=NULL,
+                      diag=FALSE,
                       seed = 123
                       ) {
   
@@ -53,13 +55,22 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
     grid1 = grid2 = NULL
   }
   
+  ##-----------------------------
+  ## method
+  ##-----------------------------
+  if(!(method %in% c("truncated", "neal")))
+    stop("Only two available sampling methods: truncated or neal.")
+  
   
   ##-----------------------------
   ## state, status
   ##-----------------------------
   if (status == FALSE) {
     ## use previous analysis
+    method = state$method
+    
     nclusters = state$nclusters
+    
     updateAlpha = state$updateAlpha
     a0 = state$a0
     b0 = state$b0
@@ -77,10 +88,13 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
     Psi = state$Psi
     Zeta = t(state$Zeta)
     Omega = state$Omega
-    lw = state$lw
-    a_gd = state$a_gd
-    b_gd = state$b_gd
     kappa = state$kappa
+    
+    if(method == "truncated") {
+      lw = state$lw
+      a_gd = state$a_gd
+      b_gd = state$b_gd
+    }
   } else {
     ## start new analysis
     
@@ -89,7 +103,7 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
     ##-----------------------------
     if (updateAlpha) {
       if ((a0 > 0) & (b0 > 0)) 
-        alpha = -1
+        alpha = 1.0   # initialize
       else
         stop("a0 and b0 are required to be positive scalars.")
     } else {
@@ -119,11 +133,11 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
       }
       if (is.null(S0)) 
         S0 = diag(apply(y, 2, function(s) (range(s)[2]-range(s)[1])^2/16))
-      m = NULL
+      m = m0 + rnorm(d, 0, 100)   # initialize
       
       ### lambda ~ Gamma(gamma1, gamma2)
       if ((gamma1 > 0) & (gamma2 > 0))
-        lambda = -1
+        lambda = rgamma(1, shape = gamma1, rate = gamma2)  # initialize
       else
         stop("gamma1 and gamma2 are required to be positive scalars.")
       
@@ -136,7 +150,7 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
       }
       if (is.null(Psi0))
         Psi0 = S0 / nu0
-      Psi = NULL
+      Psi = nu0 * Psi0   # initialize
       
     } else {
       ### m, lambda and Psi are fixed
@@ -166,7 +180,10 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
       
     }
     
-    Omega = Zeta = kappa = lw = a_gd = b_gd = NULL   # will initialize in cpp function
+    Omega = Zeta = kappa = NULL   # will initialize in cpp function
+    
+    if(method == "truncated")
+      lw = a_gd = b_gd = NULL
   }
   
   
@@ -179,7 +196,11 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
     cat("*****Prediction: ngrid1, ngrid2: ", ngrid, ", ", ngrid, "\n", sep = "")
   else
     cat("*****Prediction: FALSE\n")
-  cat("*****Number of clusters:", nclusters, "\n")
+  if(method == "truncated") {
+    cat("*****Posterior sampling method: Blocked Gibbs Sampling with", nclusters, "clusters\n")
+  } else {
+    cat("*****Posterior sampling method: Algorithm 8 with m = 1 in Neal (2000)\n")
+  }
   cat("*****Prior: updateAlpha, useHyperpriors: ", updateAlpha, ", ", useHyperpriors, "\n", sep="")
   cat("*****MCMC: nskip, ndpost, keepevery, printevery: ", nskip, ", ", ndpost, ", ", keepevery, ", ", printevery, "\n", sep = "")
   if(status)
@@ -199,43 +220,79 @@ DPMdensity = function(y, ngrid=1000L, grid=NULL, nclusters=50L,
   #---------------------------------------------- 
   ptm <- proc.time()
   
-  res = .Call("_BNPqte_cDPMdensity",
-              n,
-              d,
-              y,
-              status,
-              diag,
-              prediction,
-              ngrid,
-              updateAlpha,
-              useHyperpriors,
-              a0,
-              b0,
-              m0,
-              S0,
-              gamma1,
-              gamma2,
-              nu0,
-              Psi0,
-              nu,
-              nclusters,
-              nskip,
-              ndpost,
-              keepevery,
-              printevery,
-              alpha,
-              lambda,
-              m,
-              Psi,
-              Zeta,
-              Omega,
-              a_gd,
-              b_gd,
-              lw,
-              kappa,
-              grid1,
-              grid2
-  )
+  if(method == "truncated") {
+    res = .Call("_BNPqte_cDPMdensity",
+                n,
+                d,
+                y,
+                status,
+                diag,
+                prediction,
+                ngrid,
+                updateAlpha,
+                useHyperpriors,
+                a0,
+                b0,
+                m0,
+                S0,
+                gamma1,
+                gamma2,
+                nu0,
+                Psi0,
+                nu,
+                nclusters,
+                nskip,
+                ndpost,
+                keepevery,
+                printevery,
+                alpha,
+                lambda,
+                m,
+                Psi,
+                Zeta,
+                Omega,
+                a_gd,
+                b_gd,
+                lw,
+                kappa,
+                grid1,
+                grid2
+    )
+  } else {
+    res = .Call("_BNPqte_cDPMdensityNeal",
+                n,
+                d,
+                y,
+                status,
+                prediction,
+                ngrid,
+                updateAlpha,
+                useHyperpriors,
+                a0,
+                b0,
+                m0,
+                S0,
+                gamma1,
+                gamma2,
+                nu0,
+                Psi0,
+                nu,
+                nclusters,
+                nskip,
+                ndpost,
+                keepevery,
+                printevery,
+                alpha,
+                lambda,
+                m,
+                Psi,
+                Zeta,
+                Omega,
+                kappa,
+                grid1,
+                grid2
+    )
+  }
   
   cat("Finished!", "\n")
   

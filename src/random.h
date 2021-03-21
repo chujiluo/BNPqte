@@ -151,7 +151,7 @@ static void rCat(arma::uword k, arma::rowvec & lw, arma::uword i, arma::uvec & k
 }
 
 // Gumbel-max trick
-// Generate n samples from discrete distribution with support: 0 ~ k-1， lw is unnormalized log weights
+// Generate n samples from discrete distribution with support: 0 ~ k-1，lw is unnormalized log weights
 static void rCat(arma::uword k, arma::uword n, arma::rowvec & lw, arma::uvec & kappa){
   for(arma::uword i=0; i<n; i++){
     arma::rowvec u = arma::randu<arma::rowvec>(k);  // k samples from U[0,1]
@@ -160,7 +160,33 @@ static void rCat(arma::uword k, arma::uword n, arma::rowvec & lw, arma::uvec & k
   }
 }
 
-// Calculate probability densities of multivariate normal
+// Generate a sample from discrete distribution with support: 0 ~ m-1, prob is unnormalized weights
+static arma::uword simdisc(arma::rowvec & prob, arma::uword n, arma::uword m){
+  double total = 0;
+  for (int i=0; i<m; i++){
+    total = total + prob(i);
+  }
+  
+  if (total == 0){
+    return arma::randi<arma::uword>(arma::distr_param(0, m-1));
+  }
+  
+  double temp1 = 0;
+  double u = arma::randu<double>();
+  arma::uword i1 = 0;
+  int ok = 1;
+  
+  while ((ok == 1) && (i1 < m)){
+    temp1 = temp1 + (prob(i1) / total);
+    if (u < temp1){
+      return i1;
+      ok = 0;
+    }
+    i1++;
+  }
+  return m;
+}
+
 static void inplace_tri_mat_mult(arma::rowvec & y, arma::uword d, arma::mat & trimat){
   for(unsigned j=d; j-- > 0;){
     double tmp(0.);
@@ -170,6 +196,7 @@ static void inplace_tri_mat_mult(arma::rowvec & y, arma::uword d, arma::mat & tr
   }
 }
 
+// Calculate probability densities of multivariate normal for n observations, givn cholomega
 static arma::colvec dMvnormArma(const arma::mat & y, arma::uword n, arma::uword d, arma::colvec & zeta, arma::mat & cholomega, arma::mat & rooti, double & other_terms, const bool logd = true) { 
   arma::colvec out(n);
   
@@ -189,6 +216,20 @@ static arma::colvec dMvnormArma(const arma::mat & y, arma::uword n, arma::uword 
   return exp(out);
 }
 
+// Calculate probability densities of multivariate normal for 1 observations, given rooti directly
+static double dMvnormArma(const arma::rowvec & y, arma::uword d, arma::colvec & zeta, arma::mat & rooti, double & other_terms, const bool logd = true) { 
+  double out;
+  
+  arma::rowvec z = y - zeta.t();
+  inplace_tri_mat_mult(z, d, rooti);
+  out = other_terms - 0.5 * arma::dot(z, z);  
+  
+  if (logd)
+    return out;
+  return exp(out);
+}
+
+// Calculate probability densities of multivariate normal for n observations, given rooti directly
 static arma::colvec dMvnormArma(const arma::mat & y, arma::uword n, arma::uword d, arma::colvec & zeta, arma::mat & rooti, double & other_terms, const bool logd = true) { 
   arma::colvec out(n);
   

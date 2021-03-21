@@ -9,6 +9,10 @@ cDPMdensity <- function(n, d, y, status, diag, prediction, ngrid, updateAlpha, u
     .Call(`_BNPqte_cDPMdensity`, n, d, y, status, diag, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m_, Psi_, Zeta_, Omega_, a_gd_, b_gd_, lw_, kappa_, grid1_, grid2_)
 }
 
+cDPMdensityNeal <- function(n, d, y, status, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_ = NULL, Omega_ = NULL, kappa_ = NULL, grid1_ = NULL, grid2_ = NULL) {
+    .Call(`_BNPqte_cDPMdensityNeal`, n, d, y, status, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_, Omega_, kappa_, grid1_, grid2_)
+}
+
 cDPMmdensity <- function(n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs) {
     .Call(`_BNPqte_cDPMmdensity`, n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs)
 }
@@ -19,6 +23,22 @@ cpDPMcdensity <- function(ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaL
 
 cpDPMdensity <- function(ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList, printevery) {
     .Call(`_BNPqte_cpDPMdensity`, ngrid, grid1, grid2, d, nclusters, ndpost, ZetaList, OmegaList, lwList, printevery)
+}
+
+rnorm_cpp <- function(s, N) {
+    .Call(`_BNPqte_rnorm_cpp`, s, N)
+}
+
+simdisc <- function(prob, n, m, val) {
+    invisible(.Call(`_BNPqte_simdisc`, prob, n, m, val))
+}
+
+test <- function(prob, n, m) {
+    invisible(.Call(`_BNPqte_test`, prob, n, m))
+}
+
+test_randi <- function(m) {
+    invisible(.Call(`_BNPqte_test_randi`, m))
 }
 
 rdirichlet <- function(n, probs) {
