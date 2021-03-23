@@ -1,25 +1,32 @@
 #include "dpmNeal.h"
 
 // [[Rcpp::export]]
-Rcpp::List cDPMdensityNeal (
+Rcpp::List cDPMcdensityNeal(
     const arma::uword n,
     const arma::uword d,
-    const arma::mat & y,   //nxd matrix
+    const arma::mat & data,   // nxd matrix
+    const arma::colvec & y,   // vector of length n
+    const arma::mat & x,  // nx(d-1) matrix
     const bool status,
-    const bool prediction,
+    const bool pdf,
+    const bool cdf,
+    const bool meanReg,
     const arma::uword ngrid,
+    const arma::uword npred,
+    const bool hpd,
+    const bool bci,
     const bool updateAlpha,
     const bool useHyperpriors,
     const double a0,
     const double b0,
-    const arma::colvec & m0,  //vector of length d
-    const arma::mat & S0, //dxd matrix
+    const arma::colvec & m0,  // vector of length d
+    const arma::mat & S0,  //dxd matrix
     const double gamma1,
     const double gamma2,
     const int nu0,
     const arma::mat & Psi0, //dxd matrix
     const int nu,
-    arma::uword & nclusters, // number of USED clusters
+    arma::uword & nclusters,
     const arma::uword nskip,
     const arma::uword ndpost,
     const arma::uword keepevery,
@@ -28,11 +35,11 @@ Rcpp::List cDPMdensityNeal (
     double & lambda,
     arma::colvec & m,  // vector of length d
     arma::mat & Psi,   // dxd matrix
-    Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::List> Omega_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::IntegerVector> kappa_ = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> grid1_ = R_NilValue,  //vector of length ngrid
-    Rcpp::Nullable<Rcpp::NumericVector> grid2_ = R_NilValue  //vector of length ngrid
+    Rcpp::Nullable<Rcpp::NumericMatrix> Zeta_ = R_NilValue,  // dxnclusters matrix
+    Rcpp::Nullable<Rcpp::List> Omega_ = R_NilValue,  // nclusters elements with each is a dxd matrix
+    Rcpp::Nullable<Rcpp::IntegerVector> kappa_ = R_NilValue,  // vector of length n
+    Rcpp::Nullable<Rcpp::NumericVector> grid_ = R_NilValue,  //vector of length ngrid
+    Rcpp::Nullable<Rcpp::NumericMatrix> xpred_ = R_NilValue  // npred x (d-1) matrix
 ) {
   //------------------------------------------------------------------
   // initialize parameters and clusters
@@ -74,26 +81,20 @@ Rcpp::List cDPMdensityNeal (
   
   //------------------------------------------------------------------
   // process prediction args
-  arma::colvec grid1(ngrid);
-  arma::colvec grid2(ngrid);
-  arma::mat ypred(ngrid*ngrid, d);  // arma::mat in column major order
-  if(grid1_.isNotNull()) {
-    Rcpp::NumericVector tmp1(grid1_);
-    Rcpp::NumericVector tmp2(grid2_);
-    grid1 = Rcpp::as<arma::colvec>(tmp1);
-    grid2 = Rcpp::as<arma::colvec>(tmp2);
-    arma::uword tmp_idx = 0;
-    for(arma::uword i=0; i<ngrid; i++){
-      for(arma::uword j=0; j<ngrid; j++){
-        ypred(tmp_idx, 0) = grid1(j);
-        ypred(tmp_idx, 1) = grid2(i);
-        tmp_idx = tmp_idx + 1;
-      }
-    }
+  arma::colvec grid(ngrid);
+  if(grid_.isNotNull()) {
+    Rcpp::NumericVector tmp(grid_);
+    grid = Rcpp::as<arma::colvec>(tmp);
   }
-  arma::mat evalPDF(ngrid, ngrid);
-  arma::mat evalPDFm(ngrid, ngrid, arma::fill::zeros);
-
+  arma::mat xpred(npred, (d-1));
+  if(xpred_.isNotNull()) {
+    Rcpp::NumericMatrix tmp(xpred_);
+    xpred = Rcpp::as<arma::mat>(tmp);
+  }
+  arma::cube evalcPDFs(npred, ngrid, ndpost);
+  arma::cube evalcCDFs(npred, ngrid, ndpost);
+  arma::mat evalcMeans(npred, ndpost);
+  
   
   //------------------------------------------------------------------
   // return data structures
@@ -104,10 +105,22 @@ Rcpp::List cDPMdensityNeal (
   Rcpp::NumericVector alphaList(ndpost);
   Rcpp::NumericMatrix mList(ndpost, d);
   Rcpp::NumericVector lambdaList(ndpost);
-  Rcpp::List PsiList(ndpost);  // each is dxd
+  Rcpp::List PsiList(ndpost);  // each is d x d
   
-  Rcpp::List predPDFs(ndpost);  // each is a ngridxngrid mat
-  Rcpp::NumericMatrix predPDFm(ngrid, ngrid);
+  Rcpp::List predcPDFs(ndpost);
+  Rcpp::NumericMatrix predcPDFl(npred, ngrid);
+  Rcpp::NumericMatrix predcPDFm(npred, ngrid);
+  Rcpp::NumericMatrix predcPDFh(npred, ngrid);
+  
+  Rcpp::List predcCDFs(ndpost);
+  Rcpp::NumericMatrix predcCDFl(npred, ngrid);
+  Rcpp::NumericMatrix predcCDFm(npred, ngrid);
+  Rcpp::NumericMatrix predcCDFh(npred, ngrid);
+  
+  Rcpp::NumericMatrix predcMeans(ndpost, npred);
+  Rcpp::NumericVector predcMeanl(npred);
+  Rcpp::NumericVector predcMeanm(npred);
+  Rcpp::NumericVector predcMeanh(npred);
   
   
   //------------------------------------------------------------------
@@ -119,29 +132,43 @@ Rcpp::List cDPMdensityNeal (
       Rcpp::checkUserInterrupt();
       
       // update (hyper)parameters
-      drawparamNeal(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
+      drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
                     alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
+      
       if(((i+1)%printevery) == 0)
-        Rcpp::Rcout << "-------MCMC scan " << i+1 << " of " << nmcmc << std::endl;
+        Rcpp::Rcout << "-------MCMC scan " << i+1 << " of " << nmcmc << std::endl << std::flush;
       
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
         Rcpp::checkUserInterrupt();
         
-        drawparamNeal(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
+        drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
                       alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
+        
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
-          Rcpp::Rcout << "-------MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl;
+          Rcpp::Rcout << "-------MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl << std::flush;
       }
       
       // prediction
-      if(prediction) {
-        predict_joint_Neal(ngrid, n, d, nclusters, ypred, Zeta, icholOmega, othersOmega, alpha, m, lambda, nu, Psi,
-                           clusterSize, evalPDF);
+      if(pdf || cdf || meanReg) {
+        arma::mat tmp_pdf(npred, ngrid, arma::fill::zeros);
+        arma::mat tmp_cdf(npred, ngrid, arma::fill::zeros);
+        arma::colvec tmp_mean(npred, arma::fill::zeros);
         
-        evalPDFm = evalPDFm + evalPDF;
-        predPDFs[i-nskip] = Rcpp::wrap(evalPDF);
+        predict_conditional_Neal(ngrid, npred, n, d, nclusters, grid, xpred, Zeta, Omega, alpha,  m, lambda, nu, Psi, clusterSize,
+                                 pdf, cdf, meanReg, tmp_pdf, tmp_cdf, tmp_mean);
+        
+        if(meanReg)
+          evalcMeans.col(i-nskip) = tmp_mean;
+        if(pdf) {
+          evalcPDFs.slice(i-nskip) = tmp_pdf;
+          predcPDFs[i-nskip] = Rcpp::wrap(tmp_pdf);
+        }
+        if(cdf) {
+          evalcCDFs.slice(i-nskip) = tmp_cdf;
+          predcCDFs[i-nskip] = Rcpp::wrap(tmp_cdf);
+        }
       }
       
       
@@ -235,16 +262,99 @@ Rcpp::List cDPMdensityNeal (
   }
   res["posterior"] = posterior;
   
-  res["prediction"] = prediction;
-  if(prediction){
-    res["predict.pdfs"] = predPDFs;
+  if(meanReg) {
+    predcMeans = Rcpp::wrap(evalcMeans.t());  //ndpostxnpred
+    res["predict.meanRegs"] = predcMeans;
     
-    evalPDFm = evalPDFm / ndpost;
-    predPDFm = Rcpp::wrap(evalPDFm);
-    res["predict.pdf.avg"] = predPDFm;
+    arma::vec tmp_avg = arma::mean(evalcMeans, 1);
+    predcMeanm = Rcpp::as<std::vector<double>>(Rcpp::wrap(tmp_avg));
+    res["predict.meanReg.avg"] = predcMeanm;
     
-    res["grid1"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(grid1));
-    res["grid2"] = Rcpp::as<std::vector<double>>(Rcpp::wrap(grid2));
+    if(hpd || bci) {
+      for(arma::uword i=0; i<npred; i++) {
+        arma::vec lower(2);
+        arma::vec upper(2);
+        arma::rowvec tmp_x =  evalcMeans.row(i);
+        
+        credible_interval(ndpost, 0.05, tmp_x, lower, upper);
+        
+        if(hpd) {
+          predcMeanl[i] = lower(1);
+          predcMeanh[i] = upper(1);
+        }
+        if(bci) {
+          predcMeanl[i] = lower(0);
+          predcMeanh[i] = upper(0);
+        }
+      }
+      
+      res["predict.meanReg.lower"] = predcMeanl;
+      res["predict.meanReg.upper"] = predcMeanh;
+    }
+  }
+  
+  if(pdf) {
+    res["predict.pdfs"] = predcPDFs;
+    
+    arma::mat tmp_avg = arma::mean(evalcPDFs, 2);
+    predcPDFm = Rcpp::wrap(tmp_avg);
+    res["predict.pdf.avg"] = predcPDFm;
+    
+    if(hpd || bci) {
+      for(arma::uword i=0; i<npred; i++) {
+        for(arma::uword j=0; j<ngrid; j++) {
+          arma::vec lower(2);
+          arma::vec upper(2);
+          arma::rowvec tmp_x = evalcPDFs.tube(i, j);
+          
+          credible_interval(ndpost, 0.05, tmp_x, lower, upper);
+          
+          if(hpd) {
+            predcPDFl(i, j) = lower(1);
+            predcPDFh(i, j) = upper(1);
+          }
+          if(bci) {
+            predcPDFl(i, j) = lower(0);
+            predcPDFh(i, j) = upper(0);
+          }
+        }
+      }
+      
+      res["predict.pdf.lower"] = predcPDFl;
+      res["predict.pdf.upper"] = predcPDFh;
+    }
+  }
+  
+  if(cdf) {
+    res["predict.cdfs"] = predcCDFs;
+    
+    arma::mat tmp_avg = arma::mean(evalcCDFs, 2);
+    predcCDFm = Rcpp::wrap(tmp_avg);
+    res["predict.cdf.avg"] = predcCDFm;
+    
+    if(hpd || bci) {
+      for(arma::uword i=0; i<npred; i++) {
+        for(arma::uword j=0; j<ngrid; j++) {
+          arma::vec lower(2);
+          arma::vec upper(2);
+          arma::rowvec tmp_x = evalcCDFs.tube(i, j); 
+          
+          credible_interval(ndpost, 0.05, tmp_x, lower, upper);
+          
+          if(hpd) {
+            predcCDFl(i, j) = lower(1);
+            predcCDFh(i, j) = upper(1);
+          }
+          if(bci) {
+            predcCDFl(i, j) = lower(0);
+            predcCDFh(i, j) = upper(0);
+          }
+        }
+      }
+      
+      res["predict.cdf.lower"] = predcCDFl;
+      res["predict.cdf.upper"] = predcCDFh;
+    }
   }
   
   return res;

@@ -117,6 +117,8 @@ Rcpp::List cDPMdensity (
   
   for(arma::uword i=0; i<(nskip+ndpost); i++){
     if(i<nskip){
+      Rcpp::checkUserInterrupt();
+      
       // update (hyper)parameters
       drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
@@ -126,6 +128,8 @@ Rcpp::List cDPMdensity (
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
+        Rcpp::checkUserInterrupt();
+        
         drawparam(n, d, nclusters, y, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)

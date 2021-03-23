@@ -92,6 +92,17 @@ static void quantile_fun(arma::uword ngrid, arma::uword nprobs, const arma::colv
 }
 
 
+// Univariate distributions
+// Generate a sample from Beta(a, b)
+static double rBetaArma(double a, double b) {
+  double v1 = arma::randg<double>(arma::distr_param(a, 1.0));
+  double v2 = arma::randg<double>(arma::distr_param(b, 1.0));
+  
+  return v1 / (v1 + v2);
+}
+
+
+
 // Multivariate distributions
 
 // Generate a sample from a Multivariate Normal distribution: N(mu, sigma), cholsigma = chol(sigma)
@@ -160,31 +171,47 @@ static void rCat(arma::uword k, arma::uword n, arma::rowvec & lw, arma::uvec & k
   }
 }
 
-// Generate a sample from discrete distribution with support: 0 ~ m-1, prob is unnormalized weights
-static arma::uword simdisc(arma::rowvec & prob, arma::uword n, arma::uword m){
+// Generate k sample from discrete distribution with support: 0 ~ m-1, prob is unnormalized weights, n is the actual length of prob
+static void simdisc(arma::uword k, arma::uword m, arma::uword n, arma::rowvec & prob, arma::uword & lastCnt, arma::urowvec & out){
+  
+  lastCnt = 0;
+  
   double total = 0;
   for (int i=0; i<m; i++){
     total = total + prob(i);
   }
   
   if (total == 0){
-    return arma::randi<arma::uword>(arma::distr_param(0, m-1));
-  }
-  
-  double temp1 = 0;
-  double u = arma::randu<double>();
-  arma::uword i1 = 0;
-  int ok = 1;
-  
-  while ((ok == 1) && (i1 < m)){
-    temp1 = temp1 + (prob(i1) / total);
-    if (u < temp1){
-      return i1;
-      ok = 0;
+    out = arma::randi<arma::urowvec>(k, arma::distr_param(0, m-1));
+    for(arma::uword i=0; i<k; i++) {
+      if(out(i) == (m-1))
+        lastCnt++;
     }
-    i1++;
+  } else {
+    arma::rowvec u = arma::randu<arma::rowvec>(k);
+    for(arma::uword i=0; i<k; i++) {
+      
+      double tmp = 0;
+      arma::uword idx = 0;
+      bool flag = true;
+      
+      while(flag && (idx < m)) {
+        tmp = tmp + (prob(idx) / total);
+        if(u(i) < tmp) {
+          out(i) = idx;
+          
+          if(idx == (m-1))
+            lastCnt++;
+          
+          flag = false;
+        }
+        
+        idx++;
+      }
+      
+    }
   }
-  return m;
+  
 }
 
 static void inplace_tri_mat_mult(arma::rowvec & y, arma::uword d, arma::mat & trimat){
