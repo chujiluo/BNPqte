@@ -1,27 +1,46 @@
-#include "dpm.h"
+#include "dpmNeal.h"
 
 // [[Rcpp::export]]
-Rcpp::List cpDPMcdensity(
+Rcpp::List cpDPMcdensityNeal(
     const arma::uword ngrid,
     const arma::uword npred,
     arma::colvec & grid,
     arma::mat & xpred,
+    const arma::uword n,
     const arma::uword d,
-    const arma::uword nclusters,
-    const arma::uword ndpost,
+    const bool updateAlpha,
+    const bool useHyperpriors,
     const Rcpp::List & ZetaList,
     const Rcpp::List & OmegaList,
-    const arma::mat & lwList,
+    const arma::mat & kappaList,
+    const arma::colvec & nclusterList,
+    const arma::colvec & alphaList,
+    const arma::colvec & lambdaList,
+    const arma::mat & mList,
+    const Rcpp::List & PsiList,
+    const int nu,
+    const arma::uword ndpost,
+    const arma::uword printevery,
     const bool pdf,
     const bool cdf,
     const bool meanReg,
     const bool hpd,
-    const bool bci,
-    const arma::uword printevery
+    const bool bci
 ) {
-  
   //------------------------------------------------------------------
   // process args
+  double alpha;
+  double lambda;
+  arma::colvec m;
+  arma::mat Psi;
+  if(!updateAlpha)
+    alpha = alphaList(0);
+  if(!useHyperpriors) {
+    lambda = lambdaList(0);
+    m = mList.row(0).t();
+    Psi = Rcpp::as<arma::mat>(PsiList[0]);
+  }
+  
   arma::cube evalcPDFs(npred, ngrid, ndpost);
   arma::cube evalcCDFs(npred, ngrid, ndpost);
   arma::mat evalcMeans(npred, ndpost);
@@ -48,23 +67,44 @@ Rcpp::List cpDPMcdensity(
   //------------------------------------------------------------------
   // start evaluation
   for(arma::uword i=0; i<ndpost; i++) {
-    arma::mat tZeta = Rcpp::as<arma::mat>(ZetaList[i]);
-    arma::mat Zeta = tZeta.t();
+    Rcpp::checkUserInterrupt();
     
-    Rcpp::List rcppOmega = OmegaList[i];
-    arma::cube Omega(d, d, nclusters);
-    arma::rowvec lw(nclusters);
-    for(arma::uword j=0; j<nclusters; j++) {
-      Omega.slice(j) = Rcpp::as<arma::mat>(rcppOmega[j]);
-      lw(j) = lwList(i, j);
+    // nclusters
+    arma::uword nclusters = nclusterList(i);
+    
+    // alpha, lambda, m, Psi
+    if(updateAlpha)
+      alpha = alphaList(i);
+    if(useHyperpriors) {
+      lambda = lambdaList(i);
+      m = mList.row(i).t();
+      Psi = Rcpp::as<arma::mat>(PsiList[i]);
     }
     
-    arma::mat tmp_pdf(npred, ngrid);
-    arma::mat tmp_cdf(npred, ngrid);
-    arma::colvec tmp_mean(npred);
+    // Zeta and Omegas
+    arma::mat tZeta = Rcpp::as<arma::mat>(ZetaList[i]);
+    arma::mat Zeta = tZeta.t();
+    Rcpp::List rcppOmega = OmegaList[i];
+    arma::cube Omega(d, d, nclusters);
+    for(arma::uword j=0; j<nclusters; j++) {
+      Omega.slice(j) = Rcpp::as<arma::mat>(rcppOmega[j]);
+    }
     
-    predict_conditional(ngrid, npred, d, nclusters, grid, xpred, Zeta, Omega, lw, pdf, cdf, meanReg, tmp_pdf, tmp_cdf, tmp_mean);
+    // clusterSize
+    arma::urowvec clusterSize(n+2, arma::fill::zeros);
+    for(arma::uword j=0; j<n; j++){
+      clusterSize(kappaList(i, j)) = clusterSize(kappaList(i, j)) + 1;
+    }
     
+    // evaluation
+    arma::mat tmp_pdf(npred, ngrid, arma::fill::zeros);
+    arma::mat tmp_cdf(npred, ngrid, arma::fill::zeros);
+    arma::colvec tmp_mean(npred, arma::fill::zeros);
+    
+    predict_conditional_Neal(ngrid, npred, n, d, nclusters, grid, xpred, Zeta, Omega, alpha, m, lambda, nu, Psi, clusterSize, 
+                             pdf, cdf, meanReg, tmp_pdf, tmp_cdf, tmp_mean);
+    
+    // keep results
     if(meanReg)
       evalcMeans.col(i) = tmp_mean;
     if(pdf) {
@@ -80,6 +120,7 @@ Rcpp::List cpDPMcdensity(
       Rcpp::Rcout << ".";
   }
   Rcpp::Rcout << std::endl;
+  
   
   //------------------------------------------------------------------
   // returns
