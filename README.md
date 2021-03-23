@@ -33,8 +33,11 @@ Based on the context of the paper, this package has the following functions:
   
     1.2. adjust the variable inclusion proportions to mixed-type covariates and add Metropolis importance, according to Luo and Daniels (2020);
   
-2. `DPMdensity` and `DPMcdensity` for joint density and conditional density estimation using DPMM of multivariate Normals,
-and the posterior distribution of the DPMM is sampled using blocked Gibbs sampling introduced in Ishwaran (2000) and Ishwaran and James (2001)；
+2. `DPMdensity` and `DPMcdensity` for joint density and conditional density estimation using DPMM of multivariate Normals; the posterior distribution of the DPMM can be sampled using:
+
+    2.1. the blocked Gibbs sampling introduced in Ishwaran and James (2001) by setting `method = "truncated"`；
+
+    2.2. the modified Polya Urn sampling scheme (Algorithm 8 with m = 1) introduced in Neal (2000) by setting `method = "neal"`;
 
 3. `qte` for quantile casual effects estimation; parallel computing for fitting multiple DPMMs is available in `qte` by setting `mc.cores` greater than 1;
 
