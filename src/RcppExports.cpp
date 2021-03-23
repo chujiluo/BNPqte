@@ -231,6 +231,44 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cDPMmdensityNeal
+Rcpp::List cDPMmdensityNeal(const arma::uword n, const arma::uword d, const arma::mat& data, const arma::colvec& y, const arma::mat& x, const bool pdf, const bool cdf, const arma::uword ngrid, arma::colvec& grid, const arma::uword npred, arma::mat& xpred, const bool updateAlpha, const bool useHyperpriors, double alpha, const double a0, const double b0, double lambda, const double gamma1, const double gamma2, const int nu0, const int nu, arma::uword& nclusters, const arma::uword nskip, const arma::uword ndpost, const arma::uword keepevery, const arma::rowvec& diri, const arma::colvec& probs, const arma::uword nprobs);
+RcppExport SEXP _BNPqte_cDPMmdensityNeal(SEXP nSEXP, SEXP dSEXP, SEXP dataSEXP, SEXP ySEXP, SEXP xSEXP, SEXP pdfSEXP, SEXP cdfSEXP, SEXP ngridSEXP, SEXP gridSEXP, SEXP npredSEXP, SEXP xpredSEXP, SEXP updateAlphaSEXP, SEXP useHyperpriorsSEXP, SEXP alphaSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP lambdaSEXP, SEXP gamma1SEXP, SEXP gamma2SEXP, SEXP nu0SEXP, SEXP nuSEXP, SEXP nclustersSEXP, SEXP nskipSEXP, SEXP ndpostSEXP, SEXP keepeverySEXP, SEXP diriSEXP, SEXP probsSEXP, SEXP nprobsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::uword >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const bool >::type pdf(pdfSEXP);
+    Rcpp::traits::input_parameter< const bool >::type cdf(cdfSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type ngrid(ngridSEXP);
+    Rcpp::traits::input_parameter< arma::colvec& >::type grid(gridSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type npred(npredSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type xpred(xpredSEXP);
+    Rcpp::traits::input_parameter< const bool >::type updateAlpha(updateAlphaSEXP);
+    Rcpp::traits::input_parameter< const bool >::type useHyperpriors(useHyperpriorsSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< const double >::type gamma1(gamma1SEXP);
+    Rcpp::traits::input_parameter< const double >::type gamma2(gamma2SEXP);
+    Rcpp::traits::input_parameter< const int >::type nu0(nu0SEXP);
+    Rcpp::traits::input_parameter< const int >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< arma::uword& >::type nclusters(nclustersSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type nskip(nskipSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type ndpost(ndpostSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type keepevery(keepeverySEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type diri(diriSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type probs(probsSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type nprobs(nprobsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cDPMmdensityNeal(n, d, data, y, x, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpDPMcdensity
 Rcpp::List cpDPMcdensity(const arma::uword ngrid, const arma::uword npred, arma::colvec& grid, arma::mat& xpred, const arma::uword d, const arma::uword nclusters, const arma::uword ndpost, const Rcpp::List& ZetaList, const Rcpp::List& OmegaList, const arma::mat& lwList, const bool pdf, const bool cdf, const bool meanReg, const bool hpd, const bool bci, const arma::uword printevery);
 RcppExport SEXP _BNPqte_cpDPMcdensity(SEXP ngridSEXP, SEXP npredSEXP, SEXP gridSEXP, SEXP xpredSEXP, SEXP dSEXP, SEXP nclustersSEXP, SEXP ndpostSEXP, SEXP ZetaListSEXP, SEXP OmegaListSEXP, SEXP lwListSEXP, SEXP pdfSEXP, SEXP cdfSEXP, SEXP meanRegSEXP, SEXP hpdSEXP, SEXP bciSEXP, SEXP printeverySEXP) {
@@ -453,6 +491,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BNPqte_cDPMdensity", (DL_FUNC) &_BNPqte_cDPMdensity, 35},
     {"_BNPqte_cDPMdensityNeal", (DL_FUNC) &_BNPqte_cDPMdensityNeal, 31},
     {"_BNPqte_cDPMmdensity", (DL_FUNC) &_BNPqte_cDPMmdensity, 29},
+    {"_BNPqte_cDPMmdensityNeal", (DL_FUNC) &_BNPqte_cDPMmdensityNeal, 28},
     {"_BNPqte_cpDPMcdensity", (DL_FUNC) &_BNPqte_cpDPMcdensity, 16},
     {"_BNPqte_cpDPMcdensityNeal", (DL_FUNC) &_BNPqte_cpDPMcdensityNeal, 24},
     {"_BNPqte_cpDPMdensity", (DL_FUNC) &_BNPqte_cpDPMdensity, 10},

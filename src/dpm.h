@@ -24,7 +24,7 @@ static void setparam(arma::uword n, arma::uword nclusters, arma::colvec & m, dou
 
 //------------------------------------------------------------------
 // update (hyper)parameters
-static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa, bool diag, double & lmpp){
+static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, const arma::mat & invS0, const arma::colvec & invS0m0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, const arma::mat & invPsi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa, bool diag, double & lmpp){
   
   // calculate sufficient statistics
   std::vector<std::vector<unsigned>> clusterMembers(nclusters);
@@ -164,9 +164,8 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     
     
     // update m
-    arma::mat invS0 = arma::inv_sympd(S0);
     arma::mat m_cov = arma::inv_sympd(lambda * sumInvOmega + invS0);
-    arma::colvec m_mean = m_cov * (lambda * sumInvOmegaZeta + invS0 * m0);
+    arma::colvec m_mean = m_cov * (lambda * sumInvOmegaZeta + invS0m0);
     m = arma::mvnrnd(m_mean, m_cov);
     
     
@@ -179,7 +178,7 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     
     // update Psi
     double nu0_new = 1.0*nclusters*nu + nu0;
-    arma::mat Psi0_new = arma::inv_sympd(sumInvOmega + arma::inv_sympd(Psi0));
+    arma::mat Psi0_new = arma::inv_sympd(sumInvOmega + invPsi0);
     Psi = arma::wishrnd(Psi0_new, nu0_new);
   }
 }

@@ -1,130 +1,8 @@
-# convenient function for parallel computing in qte()
-multiple_dpm = function(n0, n1, d, y0, y1, propensity0, propensity1, 
-                        diag, pdf, cdf, ngrid, grid, npred, xpred,
-                        updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, 
-                        nclusters, nskip, ndpost, keepevery, 
-                        diri, probs, nprobs) {
-  
-  res = list()
-  
-  if(is.matrix(propensity0)) {
-    for(i in 1:nrow(propensity0)) {
-      tmp0 = .Call("_BNPqte_cDPMmdensity",
-                   n0, d, cbind(y0, propensity0[i, ]), y0, as.matrix(propensity0[i, ]),
-                   diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred[i, ]),
-                   updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, 
-                   nclusters, nskip, ndpost, keepevery,
-                   diri[i, ], probs, nprobs)
-      
-      tmp1 = .Call("_BNPqte_cDPMmdensity",
-                   n1, d, cbind(y1, propensity1[i, ]), y1, as.matrix(propensity1[i, ]),
-                   diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred[i, ]),
-                   updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu,
-                   nclusters, nskip, ndpost, keepevery,
-                   diri[i, ], probs, nprobs)
-      
-      if(i == 1) {
-        if(pdf) {
-          group0.pdfs = tmp0$predict.pdfs
-          group1.pdfs = tmp1$predict.pdfs
-        }
-        if(cdf) {
-          group0.cdfs = tmp0$predict.cdfs
-          group1.cdfs = tmp1$predict.cdfs
-          quantiles0 = tmp0$predict.quantiles
-          quantiles1 = tmp1$predict.quantiles
-          qtes = tmp1$predict.quantiles - tmp0$predict.quantiles
-        }
-        if(diag) {
-          group0.lmpps = tmp0$logMPPs
-          group1.lmpps = tmp1$logMPPs
-        }
-      } else {
-        if(pdf) {
-          group0.pdfs = rbind(group0.pdfs, tmp0$predict.pdfs)
-          group1.pdfs = rbind(group1.pdfs, tmp1$predict.pdfs)
-        }
-        if(cdf) {
-          group0.cdfs = rbind(group0.cdfs, tmp0$predict.cdfs)
-          group1.cdfs = rbind(group1.cdfs, tmp1$predict.cdfs)
-          quantiles0 = rbind(quantiles0, tmp0$predict.quantiles)
-          quantiles1 = rbind(quantiles1, tmp1$predict.quantiles)
-          qtes = rbind(qtes, tmp1$predict.quantiles - tmp0$predict.quantiles)
-        }
-        if(diag) {
-          group0.lmpps = rbind(group0.lmpps, tmp0$logMPPs)
-          group1.lmpps = rbind(group1.lmpps, tmp1$logMPPs)
-        }
-      }
-      
-      
-      rm(tmp0)
-      rm(tmp1)
-      gc()
-    }
-    
-    if(pdf) {
-      res$group0.pdfs = group0.pdfs
-      res$group1.pdfs = group1.pdfs
-    }
-    if(cdf) {
-      res$group0.cdfs = group0.cdfs
-      res$group1.cdfs = group1.cdfs
-      res$quantiles0 = quantiles0
-      res$quantiles1 = quantiles1
-      res$qtes = qtes
-    }
-    if(diag) {
-      res$group0.lmpps = group0.lmpps
-      res$group1.lmpps = group1.lmpps
-    }
-  } else {
-    ## only one row in propensity0, propensity1, xpred and diri
-    tmp0 = .Call("_BNPqte_cDPMmdensity",
-                 n0, d, cbind(y0, propensity0), y0, as.matrix(propensity0),
-                 diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred),
-                 updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, 
-                 nclusters, nskip, ndpost, keepevery,
-                 diri, probs, nprobs)
-    
-    tmp1 = .Call("_BNPqte_cDPMmdensity",
-                 n1, d, cbind(y1, propensity1), y1, as.matrix(propensity1),
-                 diag, pdf, cdf, ngrid, grid, npred, as.matrix(xpred),
-                 updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu,
-                 nclusters, nskip, ndpost, keepevery,
-                 diri, probs, nprobs)
-    
-    if(pdf) {
-      res$group0.pdfs = tmp0$predict.pdfs
-      res$group1.pdfs = tmp1$predict.pdfs
-    }
-    if(cdf) {
-      res$group0.cdfs = tmp0$predict.cdfs
-      res$group1.cdfs = tmp1$predict.cdfs
-      res$quantiles0 = tmp0$predict.quantiles
-      res$quantiles1 = tmp1$predict.quantiles
-      res$qtes = tmp1$predict.quantiles - tmp0$predict.quantiles
-    }
-    if(diag) {
-      res$group0.lmpps = tmp0$logMPPs
-      res$group1.lmpps = tmp1$logMPPs
-    }
-    
-    rm(tmp0)
-    rm(tmp1)
-    gc()
-  }
-  
-  return(res)
-}
-
-
-# estimate quantile causal effects
 qte = function(y, x, treatment,
                probs=c(0.1, 0.25, 0.50, 0.75, 0.90), 
                compute.band=TRUE, type.band="HPD", alphas=c(0.05),
                bart.link="probit", bart.params=list(split.prob="polynomial"), 
-               dpm.params=list(),
+               dpm.params=list(method="truncated", nclusters=50L),
                mc.cores=1L, nice = 19L, seed = 123) {
   
   res = list()
@@ -343,7 +221,7 @@ qte = function(y, x, treatment,
 
   
   #---------------------------------------------------------------------------------------------------- 
-  # fit probit or logit BART (Will implement two splitting probs in the future)
+  # fit probit or logit BART
   #---------------------------------------------------------------------------------------------------- 
   cat("---------------------------------\n")
   cat(" Modeling Treatment ~ Covariates\n")
@@ -404,6 +282,11 @@ qte = function(y, x, treatment,
   ##---------------------------------------------------------------------------
   ## process dpm.params: if not specified by users, then use default values
   ##---------------------------------------------------------------------------
+  if(is.null(dpm.params$method)) {
+    dpm.method = "truncated"
+  } else {
+    dpm.method = dpm.params$method
+  }
   if(is.null(dpm.params$nclusters)) {
     dpm.nclusters = 50L
   } else {
@@ -457,7 +340,6 @@ qte = function(y, x, treatment,
   } else {
     dpm.npred = dpm.params$npred
   }
-  # as.matrix(propensity[i, ])
   if(is.null(dpm.xpred) & (dpm.npred == 0)) {
     dpm.xpred = propensity
     dpm.npred = ncol(propensity)
@@ -559,7 +441,7 @@ qte = function(y, x, treatment,
   }
   if (dpm.updateAlpha) {
     if ((dpm.a0 > 0) & (dpm.b0 > 0)) 
-      dpm.alpha = -1
+      dpm.alpha = 1.0
     else
       stop("a0 and b0 in dpm.params are required to be positive scalars.")
   } else {
@@ -573,7 +455,7 @@ qte = function(y, x, treatment,
   if (dpm.useHyperpriors) {
     ### lambda ~ Gamma(gamma1, gamma2)
     if ((dpm.gamma1 > 0) & (dpm.gamma2 > 0))
-      dpm.lambda = -1
+      dpm.lambda = rgamma(1, shape = dpm.gamma1, rate = dpm.gamma2)
     else
       stop("gamma1 and gamma2 in dpm.params are required to be positive scalars.")
     ### Psi ~ Wishart(nu0, Psi0)
@@ -608,7 +490,11 @@ qte = function(y, x, treatment,
         paste(dpm.type.pred, collapse = ", "), ", ", dpm.ngrid, ", ", dpm.npred, "\n", sep = "")
   else
     cat("*****Prediction: FALSE\n")
-  cat("*****Number of clusters:", dpm.nclusters, "\n")
+  if(dpm.method == "truncated") {
+    cat("*****Posterior sampling method: Blocked Gibbs Sampling with", dpm.nclusters, "clusters\n")
+  } else {
+    cat("*****Posterior sampling method: Algorithm 8 with m = 1 in Neal (2000)\n")
+  }
   cat("*****Prior: updateAlpha, useHyperpriors: ", dpm.updateAlpha, ", ", dpm.useHyperpriors, "\n", sep="")
   cat("*****MCMC: nskip, ndpost, keepevery: ", 
       dpm.nskip, ", ", dpm.ndpost, ", ", dpm.keepevery, "\n", sep = "")
@@ -619,67 +505,31 @@ qte = function(y, x, treatment,
   ##---------------------------------------------------------------------------
   if(mc.cores == 1) {
     for (i in 1:bart.ndpost) {
-      tmp0 = .Call("_BNPqte_cDPMmdensity",
-                   n0,
-                   d,
-                   cbind(y0, propensity0[i, ]),
-                   y0,
-                   as.matrix(propensity0[i, ]),
-                   dpm.diag,
-                   dpm.pdf,
-                   dpm.cdf,
-                   dpm.ngrid,
-                   dpm.grid,
-                   dpm.npred,
-                   as.matrix(dpm.xpred[i, ]),
-                   dpm.updateAlpha,
-                   dpm.useHyperpriors,
-                   dpm.alpha,
-                   dpm.a0,
-                   dpm.b0,
-                   dpm.lambda,
-                   dpm.gamma1,
-                   dpm.gamma2,
-                   dpm.nu0,
-                   dpm.nu,
-                   dpm.nclusters,
-                   dpm.nskip,
-                   dpm.ndpost,
-                   dpm.keepevery,
-                   diri[i, ],
-                   probs,
-                   nprobs)
-      
-      tmp1 = .Call("_BNPqte_cDPMmdensity",
-                   n1,
-                   d,
-                   cbind(y1, propensity1[i, ]),
-                   y1,
-                   as.matrix(propensity1[i, ]),
-                   dpm.diag,
-                   dpm.pdf,
-                   dpm.cdf,
-                   dpm.ngrid,
-                   dpm.grid,
-                   dpm.npred,
-                   as.matrix(dpm.xpred[i, ]),
-                   dpm.updateAlpha,
-                   dpm.useHyperpriors,
-                   dpm.alpha,
-                   dpm.a0,
-                   dpm.b0,
-                   dpm.lambda,
-                   dpm.gamma1,
-                   dpm.gamma2,
-                   dpm.nu0,
-                   dpm.nu,
-                   dpm.nclusters,
-                   dpm.nskip,
-                   dpm.ndpost,
-                   dpm.keepevery,
-                   diri[i, ],
-                   probs,
-                   nprobs)
+      if(dpm.method == "truncated") {
+        tmp0 = .Call("_BNPqte_cDPMmdensity",
+                     n0, d, cbind(y0, propensity0[i, ]), y0, as.matrix(propensity0[i, ]),
+                     dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
+                     dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
+                     dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
+        
+        tmp1 = .Call("_BNPqte_cDPMmdensity",
+                     n1, d, cbind(y1, propensity1[i, ]), y1, as.matrix(propensity1[i, ]),
+                     dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
+                     dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
+                     dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
+      } else {
+        tmp0 = .Call("_BNPqte_cDPMmdensityNeal",
+                     n0, d, cbind(y0, propensity0[i, ]), y0, as.matrix(propensity0[i, ]),
+                     dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
+                     dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
+                     dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
+        
+        tmp1 = .Call("_BNPqte_cDPMmdensityNeal",
+                     n1, d, cbind(y1, propensity1[i, ]), y1, as.matrix(propensity1[i, ]),
+                     dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
+                     dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
+                     dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
+      }
       
       if(dpm.pdf) {
         if(i == 1) {
@@ -705,7 +555,7 @@ qte = function(y, x, treatment,
           qtes = rbind(qtes, tmp1$predict.quantiles - tmp0$predict.quantiles)
         }
       }
-      if(dpm.diag) {
+      if((dpm.method == "truncated") & dpm.diag) {
         if(i == 1) {
           group0.lmpps = tmp0$logMPPs
           group1.lmpps = tmp1$logMPPs
@@ -736,23 +586,44 @@ qte = function(y, x, treatment,
     cat("-------Fit DPMMs in parallel with", mc.cores, "cores...\n")
     
     ### parallel computing
-    for (i in 1:mc.cores) {
-      if (i <= bart.ndpost %% mc.cores){
-        start_row = (i - 1) * (mc.bart.ndpost + 1) + 1
-        end_row = i * (mc.bart.ndpost + 1)
+    if(dpm.method == "truncated") {
+      for (i in 1:mc.cores) {
+        if (i <= bart.ndpost %% mc.cores){
+          start_row = (i - 1) * (mc.bart.ndpost + 1) + 1
+          end_row = i * (mc.bart.ndpost + 1)
+        }
+        else{
+          start_row = (i - 1) * mc.bart.ndpost + 1 + bart.ndpost %% mc.cores
+          end_row = i * mc.bart.ndpost + bart.ndpost %% mc.cores
+        }
+        
+        parallel::mcparallel({psnice(value=nice);
+          mc.DPMmdensity(n0, n1, d, y0, y1, propensity0[start_row:end_row, ], propensity1[start_row:end_row, ], 
+                         dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
+                         dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2, 
+                         dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, 
+                         diri[start_row:end_row, ], probs, nprobs)},
+          silent=(i!=1))
       }
-      else{
-        start_row = (i - 1) * mc.bart.ndpost + 1 + bart.ndpost %% mc.cores
-        end_row = i * mc.bart.ndpost + bart.ndpost %% mc.cores
+    } else {
+      for (i in 1:mc.cores) {
+        if (i <= bart.ndpost %% mc.cores){
+          start_row = (i - 1) * (mc.bart.ndpost + 1) + 1
+          end_row = i * (mc.bart.ndpost + 1)
+        }
+        else{
+          start_row = (i - 1) * mc.bart.ndpost + 1 + bart.ndpost %% mc.cores
+          end_row = i * mc.bart.ndpost + bart.ndpost %% mc.cores
+        }
+        
+        parallel::mcparallel({psnice(value=nice);
+          mc.DPMmdensityNeal(n0, n1, d, y0, y1, propensity0[start_row:end_row, ], propensity1[start_row:end_row, ], 
+                             dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
+                             dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2, 
+                             dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, 
+                             diri[start_row:end_row, ], probs, nprobs)},
+          silent=(i!=1))
       }
-      
-      parallel::mcparallel({psnice(value=nice);
-        multiple_dpm(n0, n1, d, y0, y1, propensity0[start_row:end_row, ], propensity1[start_row:end_row, ], 
-                     dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
-                     dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2, dpm.nu0, dpm.nu, 
-                     dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, 
-                     diri[start_row:end_row, ], probs, nprobs)},
-        silent=(i!=1))
     }
     
     ### collect parallel results
@@ -769,7 +640,7 @@ qte = function(y, x, treatment,
       quantiles1 = parallel.list[[1]]$quantiles1
       qtes = parallel.list[[1]]$qtes
     }
-    if(dpm.diag) {
+    if((dpm.method == "truncated") & dpm.diag) {
       group0.lmpps = parallel.list[[1]]$group0.lmpps
       group1.lmpps = parallel.list[[1]]$group1.lmpps
     }
@@ -786,7 +657,7 @@ qte = function(y, x, treatment,
         quantiles1 = rbind(quantiles1, parallel.list[[i]]$quantiles1)
         qtes = rbind(qtes, parallel.list[[i]]$qtes)
       }
-      if(dpm.diag) {
+      if((dpm.method == "truncated") & dpm.diag) {
         group0.lmpps = rbind(group0.lmpps, parallel.list[[i]]$group0.lmpps)
         group1.lmpps = rbind(group1.lmpps, parallel.list[[i]]$group1.lmpps)
       }
@@ -968,7 +839,7 @@ qte = function(y, x, treatment,
     }
   }
   
-  if(dpm.diag) {
+  if((dpm.method == "truncated") & dpm.diag) {
     res$control.lmpps = group0.lmpps
     res$treatment.lmpps = group1.lmpps
   }
@@ -977,7 +848,8 @@ qte = function(y, x, treatment,
   res$n1 = n1
   res$p = ncol(x)
   
-  res$dpm.params = list(nclusters = dpm.nclusters, updateAlpha = dpm.updateAlpha, useHyperpriors = dpm.useHyperpriors,
+  res$dpm.params = list(method = dpm.method, nclusters = dpm.nclusters, 
+                        updateAlpha = dpm.updateAlpha, useHyperpriors = dpm.useHyperpriors,
                         nskip = dpm.nskip, ndpost = dpm.ndpost, keepevery = dpm.keepevery)
   
   attr(res, 'class') <- 'qte'

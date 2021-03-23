@@ -558,6 +558,32 @@ static void predict_conditional_Neal(arma::uword ngrid, arma::uword npred, arma:
 }
 
 
+//------------------------------------------------------------------
+// calculate marginal density or cdf of y
+static void predict_marginal_Neal(arma::uword ngrid, arma::uword npred, arma::uword n, arma::uword d, arma::uword nclusters, arma::uword nprobs, arma::colvec & grid, arma::mat & xpred, const arma::colvec & probs, arma::mat & Zeta, arma::cube & Omega, double alpha, arma::colvec & m, double lambda, int nu, arma::mat & Psi, arma::urowvec & clusterSize, bool pdf, bool cdf, const arma::rowvec & diri, arma::rowvec & evalpdf, arma::rowvec & evalcdf, arma::rowvec & evalqtls) {
+  
+  // calculate conditional density or cdf of y
+  arma::mat evalcPDF(npred, ngrid, arma::fill::zeros);
+  arma::mat evalcCDF(npred, ngrid, arma::fill::zeros);
+  arma::colvec evalcMean(npred);
+  
+  predict_conditional_Neal(ngrid, npred, n, d, nclusters, grid, xpred, Zeta, Omega, alpha, m, lambda, nu, Psi, clusterSize, 
+                           pdf, cdf, false, evalcPDF, evalcCDF, evalcMean);
+  
+
+  // calculate marginal density from conditional density using Bayesian boostrap
+  if(pdf) {
+    evalpdf = diri * evalcPDF;
+  }
+  
+  if(cdf) {
+    evalcdf = diri * evalcCDF;
+    quantile_fun(ngrid, nprobs, probs, evalcdf, grid, evalqtls);
+  }
+  
+}
+
+
 #endif
 
 

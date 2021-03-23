@@ -21,6 +21,10 @@ cDPMmdensity <- function(n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, x
     .Call(`_BNPqte_cDPMmdensity`, n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs)
 }
 
+cDPMmdensityNeal <- function(n, d, data, y, x, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs) {
+    .Call(`_BNPqte_cDPMmdensityNeal`, n, d, data, y, x, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs)
+}
+
 cpDPMcdensity <- function(ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci, printevery) {
     .Call(`_BNPqte_cpDPMcdensity`, ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci, printevery)
 }

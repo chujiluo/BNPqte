@@ -43,9 +43,14 @@ Rcpp::List cDPMcdensityNeal(
 ) {
   //------------------------------------------------------------------
   // initialize parameters and clusters
-  arma::mat invS0 = arma::inv_sympd(S0);
-  arma::colvec invS0m0 = invS0 * m0;
-  arma::mat invPsi0 = arma::inv_sympd(Psi0);
+  arma::mat invS0(d, d);
+  arma::colvec invS0m0(d);
+  arma::mat invPsi0(d, d);
+  if(useHyperpriors) {
+    invS0 = arma::inv_sympd(S0);
+    invS0m0 = invS0 * m0;
+    invPsi0 = arma::inv_sympd(Psi0);
+  }
   
   arma::mat Zeta(d, n+2); // cluster-wise: column
   arma::cube Omega(d, d, n+2); // cluster-wise: slice

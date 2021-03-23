@@ -47,9 +47,14 @@ Rcpp::List cDPMcdensity (
 ) {
   //------------------------------------------------------------------
   // initialize parameters and clusters
-  arma::mat invS0 = arma::inv_sympd(S0);
-  arma::colvec invS0m0 = invS0 * m0;
-  arma::mat invPsi0 = arma::inv_sympd(Psi0);
+  arma::mat invS0(d, d);
+  arma::colvec invS0m0(d);
+  arma::mat invPsi0(d, d);
+  if(useHyperpriors) {
+    invS0 = arma::inv_sympd(S0);
+    invS0m0 = invS0 * m0;
+    invPsi0 = arma::inv_sympd(Psi0);
+  }
   
   arma::mat Zeta(d, nclusters); // each column is of length d
   arma::cube Omega(d, d, nclusters); // each slice is dxd
@@ -133,7 +138,7 @@ Rcpp::List cDPMcdensity (
       Rcpp::checkUserInterrupt();
       
       // update (hyper)parameters
-      drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
+      drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
                 alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         
       if(((i+1)%printevery) == 0)
@@ -144,7 +149,7 @@ Rcpp::List cDPMcdensity (
       for(arma::uword j=0; j<keepevery; j++){
         Rcpp::checkUserInterrupt();
         
-        drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, 
+        drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
                   alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
         
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)

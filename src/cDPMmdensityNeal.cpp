@@ -1,19 +1,18 @@
-#include "dpm.h"
+#include "dpmNeal.h"
 
 // [[Rcpp::export]]
-Rcpp::List cDPMmdensity (
+Rcpp::List cDPMmdensityNeal(
     const arma::uword n,
     const arma::uword d,
     const arma::mat & data,   // nxd matrix
     const arma::colvec & y,   // vector of length n
     const arma::mat & x,  // nx(d-1) matrix
-    const bool diag,
     const bool pdf,
     const bool cdf,
     const arma::uword ngrid,
-    const arma::colvec & grid,
+    arma::colvec & grid,
     const arma::uword npred,
-    const arma::mat & xpred,
+    arma::mat & xpred,
     const bool updateAlpha,
     const bool useHyperpriors,
     double alpha,
@@ -24,7 +23,7 @@ Rcpp::List cDPMmdensity (
     const double gamma2,
     const int nu0,
     const int nu,
-    const arma::uword nclusters,
+    arma::uword & nclusters,
     const arma::uword nskip,
     const arma::uword ndpost,
     const arma::uword keepevery,
@@ -70,15 +69,10 @@ Rcpp::List cDPMmdensity (
   arma::cube cholOmega(d, d, nclusters); // cholOmega.slice(i) = arma::chol(Omega.slice(i))
   arma::cube icholOmega(d, d, nclusters); // icholOmega.slice(i) = arma::inv(cholOmega.slice(i))
   arma::colvec othersOmega(nclusters); // terms excluding data in the log pdf of Normal(Zeta.col(i), Omega.slice(i))
-  arma::rowvec a_gd(nclusters-1, arma::fill::ones);
-  arma::rowvec b_gd(nclusters-1, arma::fill::ones);
-  b_gd = b_gd * alpha;
-  arma::rowvec lw(nclusters);  // log(weight)
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
+  arma::urowvec clusterSize(n+2, arma::fill::zeros);
   
-  double lmpp;  // log marginal partition posterior
-  
-  setparam(n, nclusters, m, lambda, nu, Psi, alpha, Omega, cholOmega, Zeta, lw, a_gd, b_gd, kappa);
+  setparamNeal(n, d, nclusters, m, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
   
   
   //------------------------------------------------------------------
@@ -87,8 +81,6 @@ Rcpp::List cDPMmdensity (
   arma::mat evalyCDFs(ndpost, ngrid);
   arma::mat quantiles(ndpost, nprobs);
   
-  Rcpp::NumericVector lmpps(ndpost);
-  
   
   //------------------------------------------------------------------
   // start mcmc
@@ -96,14 +88,14 @@ Rcpp::List cDPMmdensity (
     if(i<nskip){
       Rcpp::checkUserInterrupt();
       // update (hyper)parameters
-      drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
+      drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
+                    alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
         Rcpp::checkUserInterrupt();
-        drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                  alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
+        drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
+                      alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
       }
       
       // prediction
@@ -112,8 +104,8 @@ Rcpp::List cDPMmdensity (
         arma::rowvec tmp_cdf(ngrid);
         arma::rowvec tmp_quantile(nprobs);
         
-        predict_marginal(ngrid, npred, d, nclusters, nprobs, grid, xpred, probs, Zeta, Omega, 
-                         lw, pdf, cdf, diri, tmp_pdf, tmp_cdf, tmp_quantile);
+        predict_marginal_Neal(ngrid, npred, n, d, nclusters, nprobs, grid, xpred, probs, Zeta, Omega, alpha, m, lambda, nu, Psi, 
+                              clusterSize, pdf, cdf, diri, tmp_pdf, tmp_cdf, tmp_quantile);
         
         if(pdf) {
           evalyPDFs.row(i-nskip) = tmp_pdf;
@@ -123,9 +115,6 @@ Rcpp::List cDPMmdensity (
           quantiles.row(i-nskip) = tmp_quantile;
         }
       }
-      
-      if(diag) 
-        lmpps[i-nskip] = lmpp;
     }
   }
   
@@ -133,8 +122,6 @@ Rcpp::List cDPMmdensity (
   //------------------------------------------------------------------
   // return
   Rcpp::List res;
-  if(diag)
-    res["logMPPs"] = lmpps;
   
   if(pdf) {
     res["predict.pdfs"] = Rcpp::wrap(evalyPDFs);
