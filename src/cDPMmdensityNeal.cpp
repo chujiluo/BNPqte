@@ -7,6 +7,7 @@ Rcpp::List cDPMmdensityNeal(
     const arma::mat & data,   // nxd matrix
     const arma::colvec & y,   // vector of length n
     const arma::mat & x,  // nx(d-1) matrix
+    const bool diag,
     const bool pdf,
     const bool cdf,
     const arma::uword ngrid,
@@ -72,6 +73,8 @@ Rcpp::List cDPMmdensityNeal(
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
   arma::urowvec clusterSize(n+2, arma::fill::zeros);
   
+  double yloglik;
+  
   setparamNeal(n, d, nclusters, m, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
   
   
@@ -81,6 +84,7 @@ Rcpp::List cDPMmdensityNeal(
   arma::mat evalyCDFs(ndpost, ngrid);
   arma::mat quantiles(ndpost, nprobs);
   
+  Rcpp::NumericVector ylogliks(ndpost);
   
   //------------------------------------------------------------------
   // start mcmc
@@ -89,13 +93,13 @@ Rcpp::List cDPMmdensityNeal(
       Rcpp::checkUserInterrupt();
       // update (hyper)parameters
       drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                    alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
+                    alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize, diag, yloglik);
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
         Rcpp::checkUserInterrupt();
         drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                      alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
+                      alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize, diag, yloglik);
       }
       
       // prediction
@@ -115,6 +119,9 @@ Rcpp::List cDPMmdensityNeal(
           quantiles.row(i-nskip) = tmp_quantile;
         }
       }
+      
+      if(diag)
+        ylogliks[i-nskip] = yloglik;
     }
   }
   
@@ -122,6 +129,9 @@ Rcpp::List cDPMmdensityNeal(
   //------------------------------------------------------------------
   // return
   Rcpp::List res;
+  
+  if(diag)
+    res["ylogliks"] = ylogliks;
   
   if(pdf) {
     res["predict.pdfs"] = Rcpp::wrap(evalyPDFs);

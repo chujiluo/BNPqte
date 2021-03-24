@@ -24,7 +24,7 @@ static void setparam(arma::uword n, arma::uword nclusters, arma::colvec & m, dou
 
 //------------------------------------------------------------------
 // update (hyper)parameters
-static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, const arma::mat & invS0, const arma::colvec & invS0m0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, const arma::mat & invPsi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa, bool diag, double & lmpp){
+static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, const arma::mat & invS0, const arma::colvec & invS0m0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, const arma::mat & invPsi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::rowvec & lw, arma::rowvec & a_gd, arma::rowvec & b_gd, arma::uvec & kappa, bool diag, double & lmpp, double & yloglik){
   
   // calculate sufficient statistics
   std::vector<std::vector<unsigned>> clusterMembers(nclusters);
@@ -39,7 +39,7 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     clusterSumyy.slice(kappa(i)) = clusterSumyy.slice(kappa(i)) + y.row(i).t() * y.row(i);
   }
   
-  // compute log marginal partition posterior for further convergence diagnostics
+  // compute log marginal partition posterior for further convergence diagnostics (actually using parameters from the last MCMC sample)
   if(diag) {
     lmpp = 0.0;
   }
@@ -118,7 +118,6 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
   // update w (weight)
   rGeneralizedDirichletArma(nclusters, a_gd, b_gd, lw);
   
-  
   // update kappa
   arma::mat loglik(n, nclusters);
   
@@ -181,6 +180,16 @@ static void drawparam(arma::uword n, arma::uword d, arma::uword nclusters, const
     arma::mat Psi0_new = arma::inv_sympd(sumInvOmega + invPsi0);
     Psi = arma::wishrnd(Psi0_new, nu0_new);
   }
+  
+  
+  // compute convergence diagnostics parameters
+  if(diag) {
+    yloglik = 0.0;
+    for(arma::uword i=0; i<n; i++) {
+      yloglik = yloglik + loglik(i, kappa(i));
+    }
+  }
+  
 }
 
 

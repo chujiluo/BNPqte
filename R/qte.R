@@ -503,6 +503,9 @@ qte = function(y, x, treatment,
   ##---------------------------------------------------------------------------
   ## fitting DPMMs
   ##---------------------------------------------------------------------------
+  if(bart.ndpost == 1)
+    mc.cores = 1
+  
   if(mc.cores == 1) {
     for (i in 1:bart.ndpost) {
       if(dpm.method == "truncated") {
@@ -520,13 +523,13 @@ qte = function(y, x, treatment,
       } else {
         tmp0 = .Call("_BNPqte_cDPMmdensityNeal",
                      n0, d, cbind(y0, propensity0[i, ]), y0, as.matrix(propensity0[i, ]),
-                     dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
+                     dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
                      dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
                      dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
         
         tmp1 = .Call("_BNPqte_cDPMmdensityNeal",
                      n1, d, cbind(y1, propensity1[i, ]), y1, as.matrix(propensity1[i, ]),
-                     dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
+                     dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
                      dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
                      dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
       }
@@ -555,13 +558,21 @@ qte = function(y, x, treatment,
           qtes = rbind(qtes, tmp1$predict.quantiles - tmp0$predict.quantiles)
         }
       }
-      if((dpm.method == "truncated") & dpm.diag) {
+      if(dpm.diag) {
         if(i == 1) {
-          group0.lmpps = tmp0$logMPPs
-          group1.lmpps = tmp1$logMPPs
+          if(dpm.method == "truncated") {
+            group0.lmpps = tmp0$logMPPs
+            group1.lmpps = tmp1$logMPPs
+          }
+          group0.ylogliks = tmp0$ylogliks
+          group1.ylogliks = tmp1$ylogliks
         } else {
-          group0.lmpps = rbind(group0.lmpps, tmp0$logMPPs)
-          group1.lmpps = rbind(group1.lmpps, tmp1$logMPPs)
+          if(dpm.method == "truncated") {
+            group0.lmpps = rbind(group0.lmpps, tmp0$logMPPs)
+            group1.lmpps = rbind(group1.lmpps, tmp1$logMPPs)
+          }
+          group0.ylogliks = rbind(group0.ylogliks, tmp0$ylogliks)
+          group1.ylogliks = rbind(group1.ylogliks, tmp1$ylogliks)
         }
       }
       
@@ -571,7 +582,6 @@ qte = function(y, x, treatment,
       cat("-------DPMM fit", 2*i, "out of", 2*bart.ndpost, "\n")
     }
   } else {
-    
     if(.Platform$OS.type!='unix')
       stop('parallel::mcparallel/mccollect do not exist on windows')
     
@@ -580,6 +590,9 @@ qte = function(y, x, treatment,
     mc.cores.detected = detectCores()
     if(mc.cores > mc.cores.detected) 
       mc.cores = mc.cores.detected
+    
+    if(mc.cores > bart.ndpost)
+      mc.cores = bart.ndpost
     
     mc.bart.ndpost = floor(bart.ndpost / mc.cores)
     
@@ -618,7 +631,7 @@ qte = function(y, x, treatment,
         
         parallel::mcparallel({psnice(value=nice);
           mc.DPMmdensityNeal(n0, n1, d, y0, y1, propensity0[start_row:end_row, ], propensity1[start_row:end_row, ], 
-                             dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
+                             dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
                              dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2, 
                              dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, 
                              diri[start_row:end_row, ], probs, nprobs)},
@@ -633,6 +646,7 @@ qte = function(y, x, treatment,
       group0.pdfs = parallel.list[[1]]$group0.pdfs
       group1.pdfs = parallel.list[[1]]$group1.pdfs
     }
+    
     if(dpm.cdf) {
       group0.cdfs = parallel.list[[1]]$group0.cdfs
       group1.cdfs = parallel.list[[1]]$group1.cdfs
@@ -640,9 +654,14 @@ qte = function(y, x, treatment,
       quantiles1 = parallel.list[[1]]$quantiles1
       qtes = parallel.list[[1]]$qtes
     }
-    if((dpm.method == "truncated") & dpm.diag) {
-      group0.lmpps = parallel.list[[1]]$group0.lmpps
-      group1.lmpps = parallel.list[[1]]$group1.lmpps
+    
+    if(dpm.diag) {
+      if(dpm.method == "truncated") {
+        group0.lmpps = parallel.list[[1]]$group0.lmpps
+        group1.lmpps = parallel.list[[1]]$group1.lmpps
+      }
+      group0.ylogliks = parallel.list[[1]]$group0.ylogliks
+      group1.ylogliks = parallel.list[[1]]$group1.ylogliks
     }
     
     for(i in 2:mc.cores) {
@@ -657,9 +676,13 @@ qte = function(y, x, treatment,
         quantiles1 = rbind(quantiles1, parallel.list[[i]]$quantiles1)
         qtes = rbind(qtes, parallel.list[[i]]$qtes)
       }
-      if((dpm.method == "truncated") & dpm.diag) {
-        group0.lmpps = rbind(group0.lmpps, parallel.list[[i]]$group0.lmpps)
-        group1.lmpps = rbind(group1.lmpps, parallel.list[[i]]$group1.lmpps)
+      if(dpm.diag) {
+        if(dpm.method == "truncated") {
+          group0.lmpps = rbind(group0.lmpps, parallel.list[[i]]$group0.lmpps)
+          group1.lmpps = rbind(group1.lmpps, parallel.list[[i]]$group1.lmpps)
+        }
+        group0.ylogliks = rbind(group0.ylogliks, parallel.list[[i]]$group0.ylogliks)
+        group1.ylogliks = rbind(group1.ylogliks, parallel.list[[i]]$group1.ylogliks)
       }
     }
     
@@ -839,9 +862,13 @@ qte = function(y, x, treatment,
     }
   }
   
-  if((dpm.method == "truncated") & dpm.diag) {
-    res$control.lmpps = group0.lmpps
-    res$treatment.lmpps = group1.lmpps
+  if(dpm.diag) {
+    if(dpm.method == "truncated") {
+      res$control.lmpps = group0.lmpps
+      res$treatment.lmpps = group1.lmpps
+    }
+    res$control.ylogliks = group0.ylogliks
+    res$treatment.ylogliks = group1.ylogliks
   }
   
   res$n0 = n0

@@ -5,24 +5,24 @@ cDPMcdensity <- function(n, d, data, y, x, status, diag, pdf, cdf, meanReg, ngri
     .Call(`_BNPqte_cDPMcdensity`, n, d, data, y, x, status, diag, pdf, cdf, meanReg, ngrid, npred, hpd, bci, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, a_gd, b_gd, Zeta_, Omega_, lw_, kappa_, grid_, xpred_)
 }
 
-cDPMcdensityNeal <- function(n, d, data, y, x, status, pdf, cdf, meanReg, ngrid, npred, hpd, bci, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_ = NULL, Omega_ = NULL, kappa_ = NULL, grid_ = NULL, xpred_ = NULL) {
-    .Call(`_BNPqte_cDPMcdensityNeal`, n, d, data, y, x, status, pdf, cdf, meanReg, ngrid, npred, hpd, bci, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_, Omega_, kappa_, grid_, xpred_)
+cDPMcdensityNeal <- function(n, d, data, y, x, status, diag, pdf, cdf, meanReg, ngrid, npred, hpd, bci, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_ = NULL, Omega_ = NULL, kappa_ = NULL, grid_ = NULL, xpred_ = NULL) {
+    .Call(`_BNPqte_cDPMcdensityNeal`, n, d, data, y, x, status, diag, pdf, cdf, meanReg, ngrid, npred, hpd, bci, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_, Omega_, kappa_, grid_, xpred_)
 }
 
 cDPMdensity <- function(n, d, y, status, diag, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, a_gd, b_gd, Zeta_ = NULL, Omega_ = NULL, lw_ = NULL, kappa_ = NULL, grid1_ = NULL, grid2_ = NULL) {
     .Call(`_BNPqte_cDPMdensity`, n, d, y, status, diag, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, a_gd, b_gd, Zeta_, Omega_, lw_, kappa_, grid1_, grid2_)
 }
 
-cDPMdensityNeal <- function(n, d, y, status, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_ = NULL, Omega_ = NULL, kappa_ = NULL, grid1_ = NULL, grid2_ = NULL) {
-    .Call(`_BNPqte_cDPMdensityNeal`, n, d, y, status, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_, Omega_, kappa_, grid1_, grid2_)
+cDPMdensityNeal <- function(n, d, y, status, diag, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_ = NULL, Omega_ = NULL, kappa_ = NULL, grid1_ = NULL, grid2_ = NULL) {
+    .Call(`_BNPqte_cDPMdensityNeal`, n, d, y, status, diag, prediction, ngrid, updateAlpha, useHyperpriors, a0, b0, m0, S0, gamma1, gamma2, nu0, Psi0, nu, nclusters, nskip, ndpost, keepevery, printevery, alpha, lambda, m, Psi, Zeta_, Omega_, kappa_, grid1_, grid2_)
 }
 
 cDPMmdensity <- function(n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs) {
     .Call(`_BNPqte_cDPMmdensity`, n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs)
 }
 
-cDPMmdensityNeal <- function(n, d, data, y, x, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs) {
-    .Call(`_BNPqte_cDPMmdensityNeal`, n, d, data, y, x, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs)
+cDPMmdensityNeal <- function(n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs) {
+    .Call(`_BNPqte_cDPMmdensityNeal`, n, d, data, y, x, diag, pdf, cdf, ngrid, grid, npred, xpred, updateAlpha, useHyperpriors, alpha, a0, b0, lambda, gamma1, gamma2, nu0, nu, nclusters, nskip, ndpost, keepevery, diri, probs, nprobs)
 }
 
 cpDPMcdensity <- function(ngrid, npred, grid, xpred, d, nclusters, ndpost, ZetaList, OmegaList, lwList, pdf, cdf, meanReg, hpd, bci, printevery) {

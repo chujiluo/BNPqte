@@ -8,6 +8,7 @@ Rcpp::List cDPMcdensityNeal(
     const arma::colvec & y,   // vector of length n
     const arma::mat & x,  // nx(d-1) matrix
     const bool status,
+    const bool diag,
     const bool pdf,
     const bool cdf,
     const bool meanReg,
@@ -59,6 +60,8 @@ Rcpp::List cDPMcdensityNeal(
   arma::colvec othersOmega(n+2); // -(d/2)*log2pi - log(det(Omega.slice(i)))/2, terms in the log pdf of Normal(Zeta.col(i), Omega.slice(i))
   arma::uvec kappa(n);  // cluster indices
   arma::urowvec clusterSize(n+2, arma::fill::zeros);
+  
+  double yloglik;
   
   if(!status) {
     // use previous analysis
@@ -112,6 +115,8 @@ Rcpp::List cDPMcdensityNeal(
   Rcpp::NumericVector lambdaList(ndpost);
   Rcpp::List PsiList(ndpost);  // each is d x d
   
+  Rcpp::NumericVector ylogliks(ndpost);
+  
   Rcpp::List predcPDFs(ndpost);
   Rcpp::NumericMatrix predcPDFl(npred, ngrid);
   Rcpp::NumericMatrix predcPDFm(npred, ngrid);
@@ -138,7 +143,7 @@ Rcpp::List cDPMcdensityNeal(
       
       // update (hyper)parameters
       drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                    alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
+                    alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize, diag, yloglik);
       
       if(((i+1)%printevery) == 0)
         Rcpp::Rcout << "-------MCMC scan " << i+1 << " of " << nmcmc << std::endl << std::flush;
@@ -149,7 +154,7 @@ Rcpp::List cDPMcdensityNeal(
         Rcpp::checkUserInterrupt();
         
         drawparamNeal(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                      alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize);
+                      alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, kappa, clusterSize, diag, yloglik);
         
         if(((nskip+(i-nskip)*keepevery+j+1)%printevery) == 0)
           Rcpp::Rcout << "-------MCMC scan " << nskip+(i-nskip)*keepevery+j+1 << " of " << nmcmc << std::endl << std::flush;
@@ -176,6 +181,8 @@ Rcpp::List cDPMcdensityNeal(
         }
       }
       
+      if(diag)
+        ylogliks[i-nskip] = yloglik;
       
       // keep the posterior sample
       nclusterList[i-nskip] = nclusters;
@@ -265,6 +272,8 @@ Rcpp::List cDPMcdensityNeal(
     posterior["lambda"] = lambda;
     posterior["Psi"] = Rcpp::wrap(Psi);
   }
+  if(diag)
+    posterior["ylogliks"] = ylogliks;
   res["posterior"] = posterior;
   
   if(meanReg) {

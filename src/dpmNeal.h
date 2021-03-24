@@ -26,7 +26,7 @@ static void setparamNeal(arma::uword n, arma::uword d, arma::uword & nclusters, 
 
 //------------------------------------------------------------------
 // update (hyper)parameters (Algorithm 8 with m = 1 in Neal, 2000)
-static void drawparamNeal(arma::uword n, arma::uword d, arma::uword & nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, const arma::mat & invS0, const arma::colvec & invS0m0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, const arma::mat & invPsi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::uvec & kappa, arma::urowvec & clusterSize){
+static void drawparamNeal(arma::uword n, arma::uword d, arma::uword & nclusters, const arma::mat & y, bool updateAlpha, bool useHyperpriors, double a0, double b0, const arma::colvec & m0, const arma::mat & S0, const arma::mat & invS0, const arma::colvec & invS0m0, double gamma1, double gamma2, int nu0, const arma::mat & Psi0, const arma::mat & invPsi0, double & alpha, arma::colvec & m, double & lambda, int nu, arma::mat & Psi, arma::cube & Omega, arma::cube & cholOmega, arma::cube & icholOmega, arma::colvec & othersOmega, arma::mat & Zeta, arma::uvec & kappa, arma::urowvec & clusterSize, bool diag, double & yloglik){
   
   // update kappa, nclusters, clusterSize
   for(arma::uword i=0; i<n; i++) {
@@ -231,6 +231,22 @@ static void drawparamNeal(arma::uword n, arma::uword d, arma::uword & nclusters,
     arma::mat Psi0_new = arma::inv_sympd(sumInvOmega + invPsi0);
     Psi = arma::wishrnd(Psi0_new, nu0_new);
   }
+  
+  
+  // compute convergence diagnostics parameters
+  if(diag) {
+    yloglik = 0.0;
+    for(arma::uword i=0; i<n; i++) {
+      arma::rowvec y_i = y.row(i);
+      arma::colvec tmp_zeta = Zeta.col(kappa(i));
+      arma::mat tmp_rooti = icholOmega.slice(kappa(i));
+      double tmp_other_terms = othersOmega(kappa(i));
+      
+      yloglik = yloglik + dMvnormArma(y_i, d, tmp_zeta, tmp_rooti, tmp_other_terms, true);
+    }
+  }
+  
+  
 }
 
 

@@ -77,6 +77,7 @@ Rcpp::List cDPMmdensity (
   arma::uvec kappa(n);  // support: 0 ~ nclusters-1
   
   double lmpp;  // log marginal partition posterior
+  double yloglik;
   
   setparam(n, nclusters, m, lambda, nu, Psi, alpha, Omega, cholOmega, Zeta, lw, a_gd, b_gd, kappa);
   
@@ -88,6 +89,7 @@ Rcpp::List cDPMmdensity (
   arma::mat quantiles(ndpost, nprobs);
   
   Rcpp::NumericVector lmpps(ndpost);
+  Rcpp::NumericVector ylogliks(ndpost);
   
   
   //------------------------------------------------------------------
@@ -97,13 +99,13 @@ Rcpp::List cDPMmdensity (
       Rcpp::checkUserInterrupt();
       // update (hyper)parameters
       drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
+                alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp, yloglik);
     } else {
       // update (hyper)parameters
       for(arma::uword j=0; j<keepevery; j++){
         Rcpp::checkUserInterrupt();
         drawparam(n, d, nclusters, data, updateAlpha, useHyperpriors, a0, b0, m0, S0, invS0, invS0m0, gamma1, gamma2, nu0, Psi0, invPsi0,
-                  alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp);
+                  alpha, m, lambda, nu, Psi, Omega, cholOmega, icholOmega, othersOmega, Zeta, lw, a_gd, b_gd, kappa, diag, lmpp, yloglik);
       }
       
       // prediction
@@ -124,8 +126,10 @@ Rcpp::List cDPMmdensity (
         }
       }
       
-      if(diag) 
+      if(diag) {
         lmpps[i-nskip] = lmpp;
+        ylogliks[i-nskip] = yloglik;
+      }
     }
   }
   
@@ -133,9 +137,11 @@ Rcpp::List cDPMmdensity (
   //------------------------------------------------------------------
   // return
   Rcpp::List res;
-  if(diag)
+  if(diag) {
     res["logMPPs"] = lmpps;
-  
+    res["ylogliks"] = ylogliks;
+  }
+    
   if(pdf) {
     res["predict.pdfs"] = Rcpp::wrap(evalyPDFs);
   }
