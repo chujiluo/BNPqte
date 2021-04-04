@@ -43,6 +43,6 @@ Based on the context of the paper, this package has the following functions:
 
 4. `predict` and `plot` S3 Methods are available for functions `DPMdensity`, `DPMcdensity` and `qte`.
 
-To increase the computational efficiency, the actual computation in **BNPqte** package is carried out in C++ and **RcppArmadillo**. In addition,
-the **BNPqte** package, inheritted from **BART** package, takes advantage of multi-threading via forking as provided by the **parallel** package and OpenMP
+To increase the computational efficiency, the actual computation in **BNPqte** package is carried out in **C++** and **RcppArmadillo**. In addition,
+the **BNPqte** package, inheritted from **BART** package, takes advantage of multi-threading via forking as provided by the **parallel** package and **OpenMP**
 when available and supported by the platform.
