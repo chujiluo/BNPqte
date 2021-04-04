@@ -258,10 +258,12 @@ qte = function(y, x, treatment,
   
   ## estimated propensity scores: bart.ndpost x n
   propensity = bart_obj$prob.train
+  res$propensity = propensity
+  
+  propensity = log(propensity / (1 - propensity))  ## logit transformation on PS
   propensity0 = propensity[, group0, drop = FALSE]
   propensity1 = propensity[, group1, drop = FALSE]
   
-  res$propensity = propensity
   res$bart.parmas = list(link = bart.link, ntree = bart.ntree, 
                          nskip = bart.nskip, ndpost = bart.ndpost, keepevery = bart.keepevery,
                          split.prob = bart.split.prob, sparse = bart.sparse,
