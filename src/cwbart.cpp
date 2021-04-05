@@ -196,6 +196,7 @@ RcppExport SEXP cwbart(
   xinfo& xi = bm.getxinfo();
   
   for(size_t i=0;i<(nd+burn);i++) {
+    
     if(i%printevery==0)
       Rcpp::Rcout << "-------BART fit " << i << " out of " << (nd+burn) << std::endl;
     if(i==(burn/2)&&dart) bm.startdart();

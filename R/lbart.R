@@ -37,11 +37,14 @@ lbart = function(x.train, y.train, x.test=matrix(0.0,0,0),
     grp <- temp$grp
     rm(temp)
     
-    p0 = length(unique(grp))  # number of predictors before dummification
+    if(length(grp)==0){
+      p0 = nrow(x.train)
+      grp <- 1:p0
+    } else {
+      p0 = length(unique(grp))  # number of predictors before dummification
+    }
     categorical_idx = unique(grp)[which(sapply(unique(grp), function(s) sum(s==grp)) > 1)]  # indices of categorical predictors in the original design matrix
     
-    if(length(rm.const)==0) rm.const <- 1:p
-    if(length(grp)==0) grp <- 1:p
   } else {
     if(any(length(rm.const)==0, length(grp)==0, length(xnames)==0))
       stop('Did not provide rm.const, grp and xnames for x.train after transpose!')
