@@ -74,13 +74,6 @@ qte = function(y, x, treatment,
   ## bart.params (currently for BART::pbart and BART::lbart)
   ## if nothing is specified, then default values will be used
   ##---------------------------------------------------------------------------
-  if(is.null(bart.params$split.prob)) {
-    bart.split.prob = "polynomial"
-  } else {
-    bart.split.prob = bart.params$split.prob
-  }
-  if(!(bart.split.prob %in% c("polynomial", "exponential")))
-    stop("Only two types of available splitting probability for BART: polynomial or exponential.")
   if(is.null(bart.params$sparse)) {
     bart.sparse = FALSE
   } else {
@@ -141,15 +134,34 @@ qte = function(y, x, treatment,
   } else {
     bart.k = bart.params$k
   }
-  if(is.null(bart.params$power)) {
-    bart.power = 2.0
+  if(is.null(bart.params$split.prob)) {
+    bart.split.prob = "polynomial"
   } else {
-    bart.power = bart.params$power
+    bart.split.prob = bart.params$split.prob
   }
-  if(is.null(bart.params$base)) {
-    bart.base = 0.95
+  if(!(bart.split.prob %in% c("polynomial", "exponential"))) {
+    stop("Only two types of available splitting probability for BART: polynomial or exponential.")
   } else {
-    bart.base = bart.params$base
+    if(bart.split.prob == "polynomial") {
+      if(is.null(bart.params$power)) {
+        bart.power = 2.0
+      } else {
+        bart.power = bart.params$power
+      }
+      if(is.null(bart.params$base)) {
+        bart.base = 0.95
+      } else {
+        bart.base = bart.params$base
+      }
+    }
+    if(bart.split.prob == "exponential") {
+      bart.power = -1.0
+      if(is.null(bart.params$base)) {
+        bart.base = 0.5
+      } else {
+        bart.base = bart.params$base
+      }
+    }
   }
   if(is.null(bart.params$binaryOffset)) {
     bart.binaryOffset = NULL

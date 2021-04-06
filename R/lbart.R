@@ -73,7 +73,7 @@ lbart = function(x.train, y.train, x.test=matrix(0.0,0,0),
     if(split.prob == "exponential") {
       power = -1.0
       if(base < 0)
-        base = 0.25
+        base = 0.5
     }
   }
   
