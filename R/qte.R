@@ -317,7 +317,7 @@ qte = function(y, x, treatment,
     dpm.grid = dpm.params$grid
   }
   if(is.null(dpm.params$type.pred)) {
-    dpm.type.pred = c("cdf")
+    dpm.type.pred = c("cdf", "pdf")
   } else {
     dpm.type.pred = dpm.params$type.pred
   }

@@ -2,6 +2,8 @@ plot.qte = function(object,
                     true.fy1=NULL, true.fy0=NULL,
                     true.quantile1=NULL, true.quantile0=NULL, true.qte=NULL) {
   
+  Fig = list()
+  
   if(object$compute.band) {
     nalphas = length(object$alphas)
     if(nalphas > 1)
@@ -55,12 +57,14 @@ plot.qte = function(object,
                                              object$type.band)), alpha=0.5) +
       scale_fill_manual("Pointwise C.I.",values="grey70")
     
-    fig = fig + facet_wrap(~grp, labeller = label_value) +
+    fig1 = fig + facet_wrap(~grp, labeller = label_value) +
       ylab(expression(f[t](y))) +
       xlab("y(t)") +
       theme_bw()
     
-    print(fig)
+    #print(fig)
+    
+    Fig = c(Fig, list(fig1))
   }
   
   # quantile plot
@@ -103,12 +107,13 @@ plot.qte = function(object,
                                   fill=paste(paste0((1-object$alphas[1])*100, "%"), 
                                              object$type.band)), alpha=0.5) +
       scale_fill_manual("",values="grey70")
-    fig = fig + facet_wrap(~grp, labeller = label_value) +
+    fig2 = fig + facet_wrap(~grp, labeller = label_value) +
       ylab("Estimated Quantiles") +
       xlab("True Quantiles") +
       theme_bw()
     
-    print(fig)
+    #print(fig)
+    Fig = c(Fig, list(fig2))
   }
   
   # width of qte C.I.s
@@ -132,12 +137,13 @@ plot.qte = function(object,
     fig = ggplot(plot_df, aes(x=probs, y=width, group = alphas)) +
       geom_point(aes(shape = alphas, colour = alphas)) 
     
-    fig = fig + facet_grid(. ~ title) +
+    fig3 = fig + facet_grid(. ~ title) +
       ylab("Width of CI") +
       xlab("Probability") +
       theme_bw()
     
-    print(fig)
+    #print(fig)
+    Fig = c(Fig, list(fig3))
   }
   
   # bias of qte
@@ -156,12 +162,15 @@ plot.qte = function(object,
       geom_point() +
       geom_hline(yintercept = 0, linetype='dotted', col = 'red', show.legend = FALSE)
     
-    fig = fig + facet_grid(. ~ title) +
+    fig4 = fig + facet_grid(. ~ title) +
       ylab("Bias") +
       xlab("Probability") +
       theme_bw()
     
-    print(fig)
+    #print(fig)
+    Fig = c(Fig, list(fig4))
   }
+  
+  invisible(Fig)
   
 }

@@ -5,6 +5,8 @@ plot.DPMcdensity = function(object, xpred.idx=c(1),
                             true_cdf=NULL, true_cdf_fun=NULL,
                             true_meanReg=NULL, true_meanReg_fun=NULL) {
   
+  Fig = list()
+  
   if(!object$prediction)
     stop("No pdf, cdf or mean regression curve is evaluated in the DPMcdensity() function.")
   
@@ -53,12 +55,13 @@ plot.DPMcdensity = function(object, xpred.idx=c(1),
       fig = fig + geom_ribbon(aes(ymin=lower, ymax=upper, fill=paste("95%", object$type.band)), alpha=0.5) +
       scale_fill_manual("Pointwise C.I.",values="grey70")
     
-    fig = fig + facet_wrap(~x, labeller = label_both_w_equal) +
+    fig1 = fig + facet_wrap(~x, labeller = label_both_w_equal) +
       ylab("f(y|x)") +
       xlab("y") +
       theme_bw()
     
-    print(fig)
+    #print(fig)
+    Fig = c(Fig, list(fig1))
   }
   
   
@@ -102,12 +105,13 @@ plot.DPMcdensity = function(object, xpred.idx=c(1),
       fig = fig + geom_ribbon(aes(ymin=lower, ymax=upper, fill=paste("95%", object$type.band)), alpha=0.5) +
       scale_fill_manual("Pointwise C.I.",values="grey70")
     
-    fig = fig + facet_wrap(~x, labeller = label_both_w_equal) +
+    fig2 = fig + facet_wrap(~x, labeller = label_both_w_equal) +
       ylab("F(y|x)") +
       xlab("y") +
       theme_bw()
     
-    print(fig)
+    #print(fig)
+    Fig = c(Fig, list(fig2))
   }
   
   
@@ -149,11 +153,14 @@ plot.DPMcdensity = function(object, xpred.idx=c(1),
       fig = fig + geom_ribbon(aes(ymin=lower, ymax=upper, fill=paste("95%", object$type.band)), alpha=0.5) +
       scale_fill_manual("Pointwise C.I.",values="grey70")
     
-    fig = fig  + facet_grid(. ~ title) +
+    fig3 = fig  + facet_grid(. ~ title) +
       ylab("E(Y|x)") +
       xlab("x") +
       theme_bw()
     
-    print(fig)
+    #print(fig)
+    Fig = c(Fig, list(fig3))
   }
+  
+  invisible(Fig)
 }
