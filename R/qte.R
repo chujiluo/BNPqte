@@ -3,6 +3,7 @@ qte = function(y, x, treatment,
                compute.band=TRUE, type.band="HPD", alphas=c(0.05),
                bart.link="probit", bart.params=list(split.prob="polynomial"), 
                dpm.params=list(method="truncated", nclusters=50L),
+               Rdist="bootstrap", xpred=matrix(0.0,0,0), npred=0,
                mc.cores=1L, nice = 19L, seed = 123) {
   
   res = list()
@@ -19,7 +20,7 @@ qte = function(y, x, treatment,
   n = length(y)
   
   ##---------------------------------------------------------------------------
-  ## x: mixed-type covariates (NOTE: categorical covariates need to be factor.)
+  ## x: mixed-type confounders (NOTE: categorical confounders need to be factor.)
   ##---------------------------------------------------------------------------
   if(nrow(x) != n)
     stop("x is a matrix or data frame with number of rows equal to length(y).")
@@ -232,16 +233,28 @@ qte = function(y, x, treatment,
   set.seed(seed)
 
   
+  #----------------------------------------------------------------------------------------------------
+  ## Rdist, xpred, npred: distribution of the confounders in the population of interest
+  #----------------------------------------------------------------------------------------------------
+  if(!(Rdist %in% c("known", "empirical", "bootstrap")))
+    stop("Available types of Rdist are: known, empirical and bootstrap.")
+  if((Rdist == "known") & (all(is.na(xpred))))
+    stop("If Rdist is known, xpred is required to be provided by users. ")
+  
+  if((!all(is.na(xpred))) & (ncol(xpred) != ncol(x)))
+    stop("xpred must have the same number of columns as x.")
+  
+  
   #---------------------------------------------------------------------------------------------------- 
   # fit probit or logit BART
   #---------------------------------------------------------------------------------------------------- 
   cat("---------------------------------\n")
-  cat(" Modeling Treatment ~ Covariates\n")
+  cat(" Modeling Treatment ~ Confounders\n")
   cat("---------------------------------\n")
   
   if(bart.link == "probit") {
     ## fit probit bart
-    bart_obj = pbart(x.train=x, y.train=treatment,
+    bart_obj = pbart(x.train=x, y.train=treatment, x.test=xpred,
                      sparse=bart.sparse, theta=bart.theta, omega=bart.omega,
                      a=bart.a, b=bart.b, augment=bart.augment, rho=bart.rho,
                      xinfo=bart.xinfo, usequants=bart.usequants,
@@ -255,7 +268,7 @@ qte = function(y, x, treatment,
                      printevery=bart.printevery, transposed=bart.transposed)
   } else {
     ## fit logit bart
-    bart_obj = lbart(x.train=x, y.train=treatment,
+    bart_obj = lbart(x.train=x, y.train=treatment, x.test=xpred,
                      sparse=bart.sparse, a=bart.a, b=bart.b, augment=bart.augment, rho=bart.rho,
                      xinfo=bart.xinfo, usequants=bart.usequants,
                      cont=bart.cont, rm.const=bart.rm.const, tau.interval=bart.tau.interval,
@@ -272,9 +285,34 @@ qte = function(y, x, treatment,
   propensity = bart_obj$prob.train
   res$propensity = propensity
   
-  propensity = log(propensity / (1 - propensity))  ## logit transformation on PS
-  propensity0 = propensity[, group0, drop = FALSE]
-  propensity1 = propensity[, group1, drop = FALSE]
+  ## H^-1(estimated propensity score): used for fitting the DPM models
+  Hinv_propensity = bart_obj$yhat.train
+  Hinv_propensity0 = Hinv_propensity[, group0, drop = FALSE]
+  Hinv_propensity1 = Hinv_propensity[, group1, drop = FALSE]
+  #propensity = log(propensity / (1 - propensity))  ## logit transformation on PS
+  #propensity0 = propensity[, group0, drop = FALSE]
+  #propensity1 = propensity[, group1, drop = FALSE]
+  
+  ## create grid points of H^-1(PS) for the DPM models
+  if(all(is.na(xpred))) {
+    ### xpred is not provided
+    if(npred == 0) {
+      ### npred is also not provided
+      dpm.npred = ncol(Hinv_propensity)
+      dpm.xpred = Hinv_propensity
+    } else {
+      ### npred is provided
+      dpm.npred = npred
+      dpm.xpred = seq(from = (min(Hinv_propensity) - 0.25 * sd(Hinv_propensity)), 
+                      to = (max(Hinv_propensity) + 0.25 * sd(Hinv_propensity)), 
+                      length.out = dpm.npred)
+      dpm.xpred = t(replicate(bart.ndpost, dpm.xpred))
+    }
+  } else {
+    ### xpred is provided
+    dpm.npred = nrow(xpred)
+    dpm.xpred = bart_obj$yhat.test
+  }
   
   res$bart.parmas = list(link = bart.link, ntree = bart.ntree, 
                          nskip = bart.nskip, ndpost = bart.ndpost, keepevery = bart.keepevery,
@@ -343,45 +381,6 @@ qte = function(y, x, treatment,
       dpm.ngrid = length(dpm.grid)
     }
   }
-  
-  if(is.null(dpm.params$xpred)) {
-    dpm.xpred = NULL
-  } else {
-    dpm.xpred = dpm.params$xpred
-  }
-  if(is.null(dpm.params$npred)) {
-    dpm.npred = 0
-  } else {
-    dpm.npred = dpm.params$npred
-  }
-  if(is.null(dpm.xpred) & (dpm.npred == 0)) {
-    dpm.xpred = propensity
-    dpm.npred = ncol(propensity)
-  } else {
-    if(is.null(dpm.xpred)) {
-      dpm.xpred = seq(from = (min(propensity) - 0.25 * sd(propensity)), 
-                      to = (max(propensity) + 0.25 * sd(propensity)), 
-                      length.out = dpm.npred)
-      dpm.xpred = t(replicate(bart.ndpost, dpm.xpred))
-    } else {
-      if((!is.vector(dpm.xpred)) | (!is.matrix(dpm.xpred))) {
-        stop("xpred in dpm.params is required to be a vector, matrix or NULL.")
-      } else {
-        if(is.vector(dpm.xpred)) {
-          dpm.npred = length(dpm.xpred)
-          dpm.xpred = t(replicate(bart.ndpost, dpm.xpred))
-        } else {
-          if(nrow(dpm.xpred) != bart.ndpost) {
-            stop("When xpred in dpm.params is provided as a matrix, 
-                 it is required to have the same number of rows as ndpost in bart.params.")
-          } else {
-            dpm.npred = ncol(dpm.xpred)
-          }
-        }
-      }
-    }
-  }
-  
   if(is.null(dpm.params$diag)) {
     dpm.diag = FALSE
   } else {
@@ -489,21 +488,32 @@ qte = function(y, x, treatment,
   ##---------------------------------------------------------------------------
   ## Bayesian Boostrap
   ##---------------------------------------------------------------------------
-  diri = .Call("_BNPqte_rdirichlet", bart.ndpost, rep(1.0, dpm.npred))
+  if((Rdist == "known") | (Rdist == "empirical")) {
+    diri = t(replicate(bart.ndpost, rep(1.0/dpm.npred, dpm.npred)))
+  } else {
+    diri = .Call("_BNPqte_rdirichlet", bart.ndpost, rep(1.0, dpm.npred))
+  }
   
   ##---------------------------------------------------------------------------
   ## print info. for DPMMs
   ##---------------------------------------------------------------------------
   cat("-------------------------------\n")
-  cat(" Modeling Outcome ~ Propensity\n")
+  cat(" Modeling Outcome ~ PS\n")
   cat("-------------------------------\n")
-  cat("*****Into main of Weight-Dependent DPMMs\n")
+  cat("*****Into main of Weight-Dependent DPMs\n")
   cat("*****Data: n0(control), n1(treatment): ", n0, ", ", n1, "\n", sep = "")
-  if(dpm.cdf | dpm.pdf)
+  if(dpm.cdf | dpm.pdf) {
     cat("*****Prediction: type, ngrid, nxpred: ", 
         paste(dpm.type.pred, collapse = ", "), ", ", dpm.ngrid, ", ", dpm.npred, "\n", sep = "")
-  else
+    if(Rdist == "known")
+      cat("*****Distribution of PS is known\n")
+    if(Rdist == "empirical")
+      cat("*****Distribution of PS is estimated by the empirical distribution\n")
+    if(Rdist == "bootstrap")
+      cat("*****Distribution of PS is estimated by Bayesian bootstrap\n")
+  } else {
     cat("*****Prediction: FALSE\n")
+  }
   if(dpm.method == "truncated") {
     cat("*****Posterior sampling method: Blocked Gibbs Sampling with", dpm.nclusters, "clusters\n")
   } else {
@@ -512,7 +522,7 @@ qte = function(y, x, treatment,
   cat("*****Prior: updateAlpha, useHyperpriors: ", dpm.updateAlpha, ", ", dpm.useHyperpriors, "\n", sep="")
   cat("*****MCMC: nskip, ndpost, keepevery: ", 
       dpm.nskip, ", ", dpm.ndpost, ", ", dpm.keepevery, "\n", sep = "")
-  cat("*****Number of DPMMs:", bart.ndpost*2, "\n")
+  cat("*****Number of DPMs:", bart.ndpost*2, "\n")
   
   ##---------------------------------------------------------------------------
   ## fitting DPMMs
@@ -524,25 +534,25 @@ qte = function(y, x, treatment,
     for (i in 1:bart.ndpost) {
       if(dpm.method == "truncated") {
         tmp0 = .Call("_BNPqte_cDPMmdensity",
-                     n0, d, cbind(y0, propensity0[i, ]), y0, as.matrix(propensity0[i, ]),
+                     n0, d, cbind(y0, Hinv_propensity0[i, ]), y0, as.matrix(Hinv_propensity0[i, ]),
                      dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
                      dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
                      dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
         
         tmp1 = .Call("_BNPqte_cDPMmdensity",
-                     n1, d, cbind(y1, propensity1[i, ]), y1, as.matrix(propensity1[i, ]),
+                     n1, d, cbind(y1, Hinv_propensity1[i, ]), y1, as.matrix(Hinv_propensity1[i, ]),
                      dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
                      dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
                      dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
       } else {
         tmp0 = .Call("_BNPqte_cDPMmdensityNeal",
-                     n0, d, cbind(y0, propensity0[i, ]), y0, as.matrix(propensity0[i, ]),
+                     n0, d, cbind(y0, Hinv_propensity0[i, ]), y0, as.matrix(Hinv_propensity0[i, ]),
                      dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
                      dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
                      dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
         
         tmp1 = .Call("_BNPqte_cDPMmdensityNeal",
-                     n1, d, cbind(y1, propensity1[i, ]), y1, as.matrix(propensity1[i, ]),
+                     n1, d, cbind(y1, Hinv_propensity1[i, ]), y1, as.matrix(Hinv_propensity1[i, ]),
                      dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, as.matrix(dpm.xpred[i, ]),
                      dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2,
                      dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, diri[i, ], probs, nprobs)
@@ -593,7 +603,7 @@ qte = function(y, x, treatment,
       rm(tmp0)
       rm(tmp1)
       gc()
-      cat("-------DPMM fit", 2*i, "out of", 2*bart.ndpost, "\n")
+      cat("-------DPM fit", 2*i, "out of", 2*bart.ndpost, "\n")
     }
   } else {
     if(.Platform$OS.type!='unix')
@@ -610,7 +620,7 @@ qte = function(y, x, treatment,
     
     mc.bart.ndpost = floor(bart.ndpost / mc.cores)
     
-    cat("-------Fit DPMMs in parallel with", mc.cores, "cores...\n")
+    cat("-------Fit DPMs in parallel with", mc.cores, "cores...\n")
     
     ### parallel computing
     if(dpm.method == "truncated") {
@@ -625,7 +635,7 @@ qte = function(y, x, treatment,
         }
         
         parallel::mcparallel({psnice(value=nice);
-          mc.DPMmdensity(n0, n1, d, y0, y1, propensity0[start_row:end_row, ], propensity1[start_row:end_row, ], 
+          mc.DPMmdensity(n0, n1, d, y0, y1, Hinv_propensity0[start_row:end_row, ], Hinv_propensity1[start_row:end_row, ], 
                          dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
                          dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2, 
                          dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, 
@@ -644,7 +654,7 @@ qte = function(y, x, treatment,
         }
         
         parallel::mcparallel({psnice(value=nice);
-          mc.DPMmdensityNeal(n0, n1, d, y0, y1, propensity0[start_row:end_row, ], propensity1[start_row:end_row, ], 
+          mc.DPMmdensityNeal(n0, n1, d, y0, y1, Hinv_propensity0[start_row:end_row, ], Hinv_propensity1[start_row:end_row, ], 
                              dpm.diag, dpm.pdf, dpm.cdf, dpm.ngrid, dpm.grid, dpm.npred, dpm.xpred[start_row:end_row, ],
                              dpm.updateAlpha, dpm.useHyperpriors, dpm.alpha, dpm.a0, dpm.b0, dpm.lambda, dpm.gamma1, dpm.gamma2, 
                              dpm.nu0, dpm.nu, dpm.nclusters, dpm.nskip, dpm.ndpost, dpm.keepevery, 
@@ -704,7 +714,7 @@ qte = function(y, x, treatment,
     gc()
   }
   
-  cat("DPMM Finished!\n")
+  cat("DPM Finished!\n")
    
   #---------------------------------------------------------------------------------------------------- 
   # returns
