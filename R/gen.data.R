@@ -1,7 +1,7 @@
 #---------------------------------------------------
 # bart: mixed-type predictors
 #---------------------------------------------------
-SampleFun1 = function(n, p, sigma, binary) {
+MixData = function(n, p, sigma, binary) {
   k = p/2
   X = matrix(NA, nrow = n, ncol = p)
   X[, 1:k] = matrix(rbinom(n*k, size = 1, prob = 0.5), nrow = n, ncol = k)
@@ -34,7 +34,7 @@ SampleFun1 = function(n, p, sigma, binary) {
 #---------------------------------------------------
 # dpmm: mixture of three bivariate Normals
 #---------------------------------------------------
-SampleFun2 = function(n) {
+ThreeNormals = function(n) {
 
   zeta1 = c(2, -1)
   zeta2 = c(1, 0)
@@ -70,7 +70,7 @@ SampleFun2 = function(n) {
 #---------------------------------------------------
 # dpmm: example from Dunson et al. (2007)
 #---------------------------------------------------
-SampleFun3 = function(n) {
+DunsonExample = function(n) {
   x = runif(n)
   y1 = x + rnorm(n, 0, sqrt(0.01))
   y2 = x^4 + rnorm(n, 0, sqrt(0.04))
@@ -96,7 +96,7 @@ SampleFun3 = function(n) {
 #---------------------------------------------------
 # qte: simulation 2 from Xu et al. (2018)
 #---------------------------------------------------
-SampleFun4 = function(n) {
+QteExample2 = function(n) {
   ## x
   x1 = matrix(runif(n*5, 0, 1), ncol = 5)
   x2 = matrix(runif(n*5, 1, 2), ncol = 5)
@@ -175,7 +175,7 @@ SampleFun4 = function(n) {
 #---------------------------------------------------
 # qte: simulation 3 from Xu et al. (2018)
 #---------------------------------------------------
-SampleFun5 = function(n) {
+QteExample = function(n) {
   ## x
   x = matrix(runif(n*10, -2, 2), ncol = 10)
   
